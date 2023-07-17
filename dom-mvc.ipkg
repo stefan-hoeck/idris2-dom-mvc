@@ -1,0 +1,30 @@
+package dom-mvc
+version    = 0.0.1
+authors    = "stefan-hoeck"
+brief      = "Single page web applications"
+
+depends    = base      >= 0.6.0
+           , dom
+           , refined
+
+modules    = Text.CSS
+           , Text.CSS.Angle
+           , Text.CSS.Color
+           , Text.CSS.Declaration
+           , Text.CSS.Dir
+           , Text.CSS.Flexbox
+           , Text.CSS.Gradient
+           , Text.CSS.Grid
+           , Text.CSS.Length
+           , Text.CSS.ListStyleType
+           , Text.CSS.Percentage
+           , Text.CSS.Property
+           , Text.CSS.Rule
+           , Text.CSS.Selector
+
+           , Text.HTML
+           , Text.HTML.Attribute
+           , Text.HTML.Event
+           , Text.HTML.Node
+
+sourcedir  = "src"

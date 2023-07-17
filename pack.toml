@@ -1,0 +1,4 @@
+[custom.all.dom-mvc]
+type   = "local"
+path   = "."
+ipkg   = "dom-mvc.ipkg"

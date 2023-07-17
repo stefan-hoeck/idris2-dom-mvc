@@ -3,11 +3,10 @@ module Text.HTML.Node
 import Data.String
 import Text.HTML.Attribute
 import Text.HTML.Event
--- import Web.Dom
 
 %default total
 
-export
+public export
 data Node : (event : Type) -> Type where
   El    :  {0 ev : Type}
         -> (tag : String)

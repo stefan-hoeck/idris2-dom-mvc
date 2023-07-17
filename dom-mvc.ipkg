@@ -32,4 +32,11 @@ modules    = Text.CSS
            , Web.MVC.Event
            , Web.MVC.Reactimate
 
+           , Web.MVC.Canvas
+           , Web.MVC.Canvas.Angle
+           , Web.MVC.Canvas.Scene
+           , Web.MVC.Canvas.Shape
+           , Web.MVC.Canvas.Style
+           , Web.MVC.Canvas.Transformation
+
 sourcedir  = "src"

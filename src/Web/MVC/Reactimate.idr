@@ -29,6 +29,87 @@ export %inline
 forJSIO_ : List t -> (t -> JSIO ()) -> JSIO ()
 forJSIO_ as f = traverseJSIO_ f as
 
+--------------------------------------------------------------------------------
+--          Inserting Nodes
+--------------------------------------------------------------------------------
+
+||| Tries to retrieve an element of the given type by looking
+||| up its ID in the DOM. Unlike `getElementById`, this will throw
+||| an exception in the `JSIO` monad if the element is not found
+||| or can't be safely cast to the desired type.
+export
+strictGetElementById : SafeCast t => (tag,id : String) -> JSIO t
+strictGetElementById tag id = do
+  Nothing <- castElementById t id | Just t => pure t
+  liftJSIO $ throwError $
+    Caught "Web.MVC.Reactimate.strictGetElementById: Could not find \{tag} with id \{id}"
+
+||| Tries to retrieve a HTMLElement by looking
+||| up its ID in the DOM. Unlike `getElementById`, this will throw
+||| an exception in the `JSIO` monad if the element is not found
+||| or can't be safely cast to the desired type.
+export %inline
+strictGetHTMLElementById : (tag,id : String) -> JSIO HTMLElement
+strictGetHTMLElementById = strictGetElementById
+
+||| Tries to retrieve an element of the given type by looking
+||| up its ID in the DOM. Unlike `getElementById`, this will throw
+||| an exception in the `JSIO` monad if the element is not found
+||| or can't be safely cast to the desired type.
+export
+getElementByRef : (r : ElemRef) -> JSIO (ElemType r)
+getElementByRef (Id {tag} _ id) = strictGetElementById tag id
+getElementByRef (Class _ class) = getElementByClass class
+getElementByRef Body            = body
+getElementByRef Document        = document
+getElementByRef Window          = window
+
+err : String
+err = "Web.MVC.Reactimate.castElementByRef"
+
+||| Tries to retrieve an element of the given type by looking
+||| up its ID in the DOM. Unlike `getElementById`, this will throw
+||| an exception in the `JSIO` monad if the element is not found
+||| or can't be safely cast to the desired type.
+export
+castElementByRef : SafeCast t => ElemRef -> JSIO t
+castElementByRef (Id {tag} _ id) = strictGetElementById tag id
+castElementByRef (Class _ class) = getElementByClass class
+castElementByRef Body            = body >>= tryCast err
+castElementByRef Document        = document >>= tryCast err
+castElementByRef Window          = window >>= tryCast err
+
+setVM : ElemRef -> SetValidityTag t -> String -> JSIO ()
+setVM r SVButton s   = castElementByRef r >>= \x => HTMLButtonElement.setCustomValidity x s
+setVM r SVFieldSet s = castElementByRef r >>= \x => HTMLFieldSetElement.setCustomValidity x s
+setVM r SVInput s    = castElementByRef r >>= \x => HTMLInputElement.setCustomValidity x s
+setVM r SVObject s   = castElementByRef r >>= \x => HTMLObjectElement.setCustomValidity x s
+setVM r SVOutput s   = castElementByRef r >>= \x => HTMLOutputElement.setCustomValidity x s
+setVM r SVSelect s   = castElementByRef r >>= \x => HTMLSelectElement.setCustomValidity x s
+setVM r SVTextArea s = castElementByRef r >>= \x => HTMLTextAreaElement.setCustomValidity x s
+
+setVal : ElemRef -> ValueTag t -> String -> JSIO ()
+setVal r VButton s   = castElementByRef r >>= (HTMLButtonElement.value =. s)
+setVal r VData s     = castElementByRef r >>= (HTMLDataElement.value =. s)
+setVal r VInput s    = castElementByRef r >>= (HTMLInputElement.value =. s)
+setVal r VOption s   = castElementByRef r >>= (HTMLOptionElement.value =. s)
+setVal r VOutput s   = castElementByRef r >>= (HTMLOutputElement.value =. s)
+setVal r VParam s    = castElementByRef r >>= (HTMLParamElement.value =. s)
+setVal r VSelect s   = castElementByRef r >>= (HTMLSelectElement.value =. s)
+setVal r VTextArea s = castElementByRef r >>= (HTMLTextAreaElement.value =. s)
+
+export
+setValidityMessage : (r : ElemRef) -> SetValidity r => String -> JSIO ()
+setValidityMessage (Id t i) @{SV @{p}} = setVM (Id t i) p
+
+export
+setValue : (r : ElemRef) -> Value r => String -> JSIO ()
+setValue (Id t i) @{V @{p}} = setVal (Id t i) p
+
+--------------------------------------------------------------------------------
+--          Registering Events
+--------------------------------------------------------------------------------
+
 ||| Low level method for registering `DOMEvents` at
 ||| HTML elements.
 |||
@@ -137,14 +218,17 @@ replaceDF elem = replaceWith elem . nodeList
 
 public export
 data DOMUpdate : Type -> Type where
-  Children : ElemRef -> (ns : List (Node e)) -> DOMUpdate e
-  Replace  : ElemRef -> (ns : List (Node e)) -> DOMUpdate e
-  Append   : ElemRef -> (ns : List (Node e)) -> DOMUpdate e
-  Prepend  : ElemRef -> (ns : List (Node e)) -> DOMUpdate e
-  After    : ElemRef -> (ns : List (Node e)) -> DOMUpdate e
-  Before   : ElemRef -> (ns : List (Node e)) -> DOMUpdate e
-  Attr     : ElemRef -> Attribute e -> DOMUpdate e
-  Remove   : ElemRef -> DOMUpdate e
+  Children    : ElemRef -> (ns : List (Node e)) -> DOMUpdate e
+  Replace     : ElemRef -> (ns : List (Node e)) -> DOMUpdate e
+  Append      : ElemRef -> (ns : List (Node e)) -> DOMUpdate e
+  Prepend     : ElemRef -> (ns : List (Node e)) -> DOMUpdate e
+  After       : ElemRef -> (ns : List (Node e)) -> DOMUpdate e
+  Before      : ElemRef -> (ns : List (Node e)) -> DOMUpdate e
+  Attr        : ElemRef -> Attribute e -> DOMUpdate e
+  Value       : (r : ElemRef) -> Value r => String -> DOMUpdate e
+  ValidityMsg : (r : ElemRef) -> SetValidity r => String -> DOMUpdate e
+  Remove      : ElemRef -> DOMUpdate e
+  NoAction    : DOMUpdate e
 
 --------------------------------------------------------------------------------
 --          Node Preparation
@@ -286,14 +370,17 @@ parameters {0    e : Type}         -- event type
   ||| Execute a single DOM update instruction
   export
   updateDOM1 : DOMUpdate e -> JSIO ()
-  updateDOM1 (Children x ns) = innerHtmlAtN x ns
-  updateDOM1 (Replace x ns)  = replaceN x ns
-  updateDOM1 (Append x ns)   = appendN x ns
-  updateDOM1 (Prepend x ns)  = prependN x ns
-  updateDOM1 (After x ns)    = afterN x ns
-  updateDOM1 (Before x ns)   = beforeN x ns
-  updateDOM1 (Attr x a)      = setAttributeRef handle x a
-  updateDOM1 (Remove x)      = castElementByRef {t = Element} x >>= remove
+  updateDOM1 (Children x ns)   = innerHtmlAtN x ns
+  updateDOM1 (Replace x ns)    = replaceN x ns
+  updateDOM1 (Append x ns)     = appendN x ns
+  updateDOM1 (Prepend x ns)    = prependN x ns
+  updateDOM1 (After x ns)      = afterN x ns
+  updateDOM1 (Before x ns)     = beforeN x ns
+  updateDOM1 (Attr x a)        = setAttributeRef handle x a
+  updateDOM1 (Value x a)       = setValue x a
+  updateDOM1 (ValidityMsg x a) = setValidityMessage x a
+  updateDOM1 (Remove x)        = castElementByRef {t = Element} x >>= remove
+  updateDOM1 NoAction          = pure ()
 
   ||| Execute several DOM update instructions
   export %inline

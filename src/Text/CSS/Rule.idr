@@ -3,7 +3,7 @@ module Text.CSS.Rule
 import Data.String
 import Text.CSS.Declaration
 import Text.CSS.Selector
-import Web.Dom
+import Text.HTML.Tag
 
 %default total
 
@@ -32,7 +32,7 @@ classes : List String -> List Declaration -> Rule n
 classes = sel . classes
 
 export %inline
-elem : {str : _} -> (0 tpe : ElementType str t) -> List Declaration -> Rule n
+elem : {str : _} -> (0 tag : HTMLTag str) -> List Declaration -> Rule n
 elem v = sel $ elem v
 
 export %inline

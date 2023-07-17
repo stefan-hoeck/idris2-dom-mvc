@@ -3,7 +3,7 @@ module Web.MVC.Canvas
 import Data.List
 import JS
 import Web.Html
-import Web.MVC.ElemRef
+import Web.MVC
 
 import public Web.MVC.Canvas.Angle
 import public Web.MVC.Canvas.Scene

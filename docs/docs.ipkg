@@ -1,0 +1,32 @@
+package dom-mvc-docs
+version    = 0.0.1
+authors    = "Stefan Höck"
+depends    = dom-mvc
+           , contrib
+           , rio
+           , monocle
+
+opts       = "--codegen javascript"
+
+main       = Examples.Main
+executable = "mvc.js"
+
+modules    = Examples.CSS
+           , Examples.CSS.Colors
+           , Examples.CSS.Core
+           , Examples.CSS.Fractals
+           , Examples.CSS.MathGame
+           , Examples.CSS.Performance
+           , Examples.CSS.Reset
+
+           , Examples.Fractals
+           , Examples.Fractals.Dragon
+
+           , Examples.Balls
+           , Examples.MathGame
+           , Examples.Performance
+           , Examples.Reset
+           , Examples.Selector
+           , Examples.Util
+
+sourcedir  = "src"

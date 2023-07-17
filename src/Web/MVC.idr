@@ -12,16 +12,15 @@ runMVC :
      {0 e,s : Type}
   -> (initEv  : e)
   -> (initST  : s)
-  -> (modST   : e -> s -> s)
-  -> (display : (e -> JSIO ()) -> e -> s -> JSIO ())
+  -> (modST   : (e -> JSIO ()) -> e -> s -> JSIO s)
   -> JSIO ()
-runMVC initEv initST modST display = do
+runMVC initEv initST modST = do
   ref <- newIORef initST
 
   let covering handler : e -> JSIO ()
       handler ev = do
-        modifyIORef ref (modST ev)
-        st <- readIORef ref
-        display handler ev st
+        stOld <- readIORef ref
+        stNew <- modST handler ev stOld
+        writeIORef ref stNew
 
   handler initEv

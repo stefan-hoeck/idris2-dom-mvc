@@ -4,94 +4,9 @@ import JS
 import Text.CSS
 import Text.HTML
 import Web.Dom
+import public Text.HTML.Tag
 
 %default total
-
-namespace Tag
-  ||| HTML Element Tags linking tag names with an enumeration.
-  |||
-  ||| Some deprecated tags have been left out, some others might
-  ||| still be missing.
-  public export
-  data HTMLTag : (tag : String) -> Type where
-    A          : HTMLTag "a"
-    Address    : HTMLTag "address"
-    Area       : HTMLTag "area"
-    Article    : HTMLTag "article"
-    Audio      : HTMLTag "audio"
-    Base       : HTMLTag "base"
-    Blockquote : HTMLTag "blockquote"
-    Body       : HTMLTag "body"
-    Br         : HTMLTag "br"
-    Button     : HTMLTag "button"
-    Canvas     : HTMLTag "canvas"
-    Caption    : HTMLTag "caption"
-    Col        : HTMLTag "col"
-    Colgroup   : HTMLTag "colgroup"
-    Data       : HTMLTag "data"
-    Datalist   : HTMLTag "datalist"
-    Del        : HTMLTag "del"
-    Details    : HTMLTag "details"
-    Dialog     : HTMLTag "dialog"
-    Div        : HTMLTag "div"
-    Dl         : HTMLTag "dl"
-    Embed      : HTMLTag "embed"
-    FieldSet   : HTMLTag "fieldset"
-    Footer     : HTMLTag "footer"
-    Form       : HTMLTag "form"
-    H1         : HTMLTag "h1"
-    H2         : HTMLTag "h2"
-    H3         : HTMLTag "h3"
-    H4         : HTMLTag "h4"
-    H5         : HTMLTag "h5"
-    H6         : HTMLTag "h6"
-    HR         : HTMLTag "hr"
-    Header     : HTMLTag "header"
-    Html       : HTMLTag "html"
-    IFrame     : HTMLTag "iframe"
-    Img        : HTMLTag "img"
-    Input      : HTMLTag "input"
-    Ins        : HTMLTag "ins"
-    Label      : HTMLTag "label"
-    Legend     : HTMLTag "legend"
-    Li         : HTMLTag "li"
-    Link       : HTMLTag "link"
-    Map        : HTMLTag "map"
-    Menu       : HTMLTag "menu"
-    Meta       : HTMLTag "meta"
-    Meter      : HTMLTag "meter"
-    Object     : HTMLTag "object"
-    Ol         : HTMLTag "ol"
-    OptGroup   : HTMLTag "optgroup"
-    Option     : HTMLTag "option"
-    Output     : HTMLTag "output"
-    P          : HTMLTag "p"
-    Param      : HTMLTag "param"
-    Picture    : HTMLTag "picture"
-    Pre        : HTMLTag "pre"
-    Progress   : HTMLTag "progress"
-    Q          : HTMLTag "q"
-    Script     : HTMLTag "script"
-    Section    : HTMLTag "section"
-    Select     : HTMLTag "select"
-    Slot       : HTMLTag "slot"
-    Source     : HTMLTag "source"
-    Span       : HTMLTag "span"
-    Style      : HTMLTag "style"
-    Table      : HTMLTag "table"
-    Tbody      : HTMLTag "tbody"
-    Td         : HTMLTag "td"
-    Template   : HTMLTag "template"
-    TextArea   : HTMLTag "textarea"
-    Tfoot      : HTMLTag "tfoot"
-    Th         : HTMLTag "th"
-    Thead      : HTMLTag "thead"
-    Time       : HTMLTag "time"
-    Title      : HTMLTag "title"
-    Tr         : HTMLTag "tr"
-    Track      : HTMLTag "track"
-    Ul         : HTMLTag "ul"
-    Video      : HTMLTag "video"
 
 --------------------------------------------------------------------------------
 --          ElemRef
@@ -107,13 +22,13 @@ namespace Tag
 ||| `body`, `document`, and `window`.
 public export
 data ElemRef : Type where
-  Id :  {tag   : String}
-     -> (0 tpe : HTMLTag tag)
-     -> (id    : String)
+  Id :  {tag : String}
+     -> (tpe : HTMLTag tag)
+     -> (id  : String)
      -> ElemRef
 
   Class :  {tag   : String}
-        -> (0 tpe : HTMLTag tag)
+        -> (tpe   : HTMLTag tag)
         -> (class : String)
         -> ElemRef
 
@@ -132,6 +47,10 @@ ElemType Body        = HTMLElement
 ElemType Document    = Document
 ElemType Window      = Window
 
+--------------------------------------------------------------------------------
+--          Predicates
+--------------------------------------------------------------------------------
+
 ||| Predicate witnessing that a given `ElemRef` is a reference
 ||| by ID.
 public export
@@ -143,6 +62,39 @@ data ById : ElemRef -> Type where
 public export
 data ByClass : ElemRef -> Type where
   IsByClass : {0 tpe : _} -> {0 id : _} -> ByClass (Class tpe id)
+
+public export
+data SetValidityTag : (t : HTMLTag s) -> Type where
+  SVButton   : SetValidityTag Button
+  SVFieldSet : SetValidityTag FieldSet
+  SVInput    : SetValidityTag Input
+  SVObject   : SetValidityTag Object
+  SVOutput   : SetValidityTag Output
+  SVSelect   : SetValidityTag Select
+  SVTextArea : SetValidityTag TextArea
+
+public export
+data SetValidity : (r : ElemRef) -> Type where
+  SV : {auto prf : SetValidityTag t} -> SetValidity (Id t i)
+
+public export
+data ValueTag : (t : HTMLTag s) -> Type where
+  VButton   : ValueTag Button
+  VData     : ValueTag Data
+  VInput    : ValueTag Input
+  VOption   : ValueTag Option
+  VOutput   : ValueTag Output
+  VParam    : ValueTag Param
+  VSelect   : ValueTag Select
+  VTextArea : ValueTag TextArea
+
+public export
+data Value : (r : ElemRef) -> Type where
+  V : {auto prf : ValueTag t} -> Value (Id t i)
+
+--------------------------------------------------------------------------------
+--          Attributes and Rules
+--------------------------------------------------------------------------------
 
 namespace Attribute
   ||| Uses an element ref as an ID attribute
@@ -160,53 +112,3 @@ namespace CSS
   export
   classRef : (r : ElemRef) -> {auto 0 _ : ByClass r} -> List Declaration -> Rule n
   classRef (Class _ i) = class i
-
---------------------------------------------------------------------------------
---          Inserting Nodes
---------------------------------------------------------------------------------
-
-||| Tries to retrieve an element of the given type by looking
-||| up its ID in the DOM. Unlike `getElementById`, this will throw
-||| an exception in the `JSIO` monad if the element is not found
-||| or can't be safely cast to the desired type.
-export
-strictGetElementById : SafeCast t => (tag,id : String) -> JSIO t
-strictGetElementById tag id = do
-  Nothing <- castElementById t id | Just t => pure t
-  liftJSIO $ throwError $
-    Caught "Web.MVC.ElemRef.strictGetElementById: Could not find \{tag} with id \{id}"
-
-||| Tries to retrieve a HTMLElement by looking
-||| up its ID in the DOM. Unlike `getElementById`, this will throw
-||| an exception in the `JSIO` monad if the element is not found
-||| or can't be safely cast to the desired type.
-export %inline
-strictGetHTMLElementById : (tag,id : String) -> JSIO HTMLElement
-strictGetHTMLElementById = strictGetElementById
-
-||| Tries to retrieve an element of the given type by looking
-||| up its ID in the DOM. Unlike `getElementById`, this will throw
-||| an exception in the `JSIO` monad if the element is not found
-||| or can't be safely cast to the desired type.
-export
-getElementByRef : (r : ElemRef) -> JSIO (ElemType r)
-getElementByRef (Id {tag} _ id) = strictGetElementById tag id
-getElementByRef (Class _ class) = getElementByClass class
-getElementByRef Body            = body
-getElementByRef Document        = document
-getElementByRef Window          = window
-
-err : String
-err = "Web.MVC.ElemRef.castElementByRef"
-
-||| Tries to retrieve an element of the given type by looking
-||| up its ID in the DOM. Unlike `getElementById`, this will throw
-||| an exception in the `JSIO` monad if the element is not found
-||| or can't be safely cast to the desired type.
-export
-castElementByRef : SafeCast t => ElemRef -> JSIO t
-castElementByRef (Id {tag} _ id) = strictGetElementById tag id
-castElementByRef (Class _ class) = getElementByClass class
-castElementByRef Body            = body >>= tryCast err
-castElementByRef Document        = document >>= tryCast err
-castElementByRef Window          = window >>= tryCast err

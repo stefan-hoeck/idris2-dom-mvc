@@ -2,3 +2,14 @@
 type   = "local"
 path   = "."
 ipkg   = "dom-mvc.ipkg"
+
+[custom.all.dom-mvc-docs]
+type   = "local"
+path   = "docs"
+ipkg   = "docs.ipkg"
+
+[custom.all.monocle]
+type   = "git"
+url    = "https://github.com/stefan-hoeck/idris2-monocle"
+commit = "latest:main"
+ipkg   = "monocle.ipkg"

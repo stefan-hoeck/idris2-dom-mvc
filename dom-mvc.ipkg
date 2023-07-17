@@ -27,4 +27,9 @@ modules    = Text.CSS
            , Text.HTML.Event
            , Text.HTML.Node
 
+           , Web.MVC
+           , Web.MVC.ElemRef
+           , Web.MVC.Event
+           , Web.MVC.Reactimate
+
 sourcedir  = "src"

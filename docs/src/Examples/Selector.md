@@ -12,12 +12,11 @@ module Examples.Selector
 import Derive.Lens
 import public Data.List.Quantifiers.Extra
 import Examples.CSS
-import Examples.Balls
+import public Examples.Balls
 import Examples.Fractals
 import Examples.MathGame
 import public Examples.Performance
 import public Examples.Reset
-import public JS
 import Monocle
 import public Web.MVC
 
@@ -140,7 +139,7 @@ Enough talk, here's the code:
 ```idris
 public export
 0 Events : List Type
-Events = [String, PerfEv, ResetEv]
+Events = [String, BallsEv, PerfEv, ResetEv]
 
 public export
 0 SelectEv : Type
@@ -151,29 +150,33 @@ record ST where
   constructor S
   perf  : PerfST
   reset : Int8
+  balls : BallsST
 
 %runElab derive "ST" [Lenses]
 
 export
 init : ST
-init = S init 0
+init = S init 0 init
 
 0 Controller : Type -> Type
 Controller e = e -> ST -> JSIO ST
 
-runSelect : (SelectEv -> JSIO ()) -> String -> ST -> JSIO ST
-runSelect h "reset"       _ = modifyA resetL (runReset h Init) init
-runSelect h "performance" _ = modifyA perfL  (runPerf h Init) init
-runSelect h _             _ = do
+runSelect : Handler SelectEv -> String -> JSIO ST
+runSelect h "reset"       = modifyA resetL (runReset h Init) init
+runSelect h "performance" = modifyA perfL  (runPerf h Init) init
+runSelect h "balls"       = modifyA ballsL (runBalls h Init) init
+runSelect h _             = do
   updateDOM (h . inject)
-    [ Children appStyle [Raw allRules]
-    , Children contentDiv [content]
-    ]
+    [ style appStyle allRules , child contentDiv content ]
   modifyA resetL (runReset h Init) init
+
+cleanup : ST -> JSIO ()
+cleanup s = liftIO s.balls.cleanUp
 
 controllers : (SelectEv -> JSIO ()) -> All Controller Events
 controllers h =
-  [ runSelect h
+  [ \e,s => cleanup s >> runSelect h e
+  , \e => modifyA ballsL (runBalls h e)
   , \e => modifyA perfL  (runPerf h e)
   , \e => modifyA resetL (runReset h e)
   ]

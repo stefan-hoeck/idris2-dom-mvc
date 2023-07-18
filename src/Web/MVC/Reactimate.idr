@@ -1,110 +1,31 @@
 module Web.MVC.Reactimate
 
-import Data.IORef
-import Data.Nat
+import Control.Monad.Either.Extra
+import Data.List.Quantifiers.Extra
 import JS
+import Web.MVC.Canvas
+import Web.MVC.DOMUpdate
 import Web.MVC.ElemRef
 import Web.MVC.Event
-import Text.CSS
 import Text.HTML
 import Web.Dom
 import Web.Html
 
 %default total
 
-primTraverse_ : (t -> JSIO ()) -> List t -> PrimIO (Either JSErr ())
-primTraverse_ f []        w = MkIORes (Right ()) w
-primTraverse_ f (x :: xs) w =
-  let MkIORes (Right ()) w2 := toPrim (runEitherT (f x)) w
-        | MkIORes (Left err) w2 => MkIORes (Left err) w2
-   in primTraverse_ f xs w2
-
--- TODO : This should got to the JS module
-export
-traverseJSIO_ : (t -> JSIO ()) -> List t -> JSIO ()
-traverseJSIO_ f xs = MkEitherT $ fromPrim $ primTraverse_ f xs
-
--- TODO : This should got to the JS module
-export %inline
-forJSIO_ : List t -> (t -> JSIO ()) -> JSIO ()
-forJSIO_ as f = traverseJSIO_ f as
-
 --------------------------------------------------------------------------------
---          Inserting Nodes
+--          Event Handler
 --------------------------------------------------------------------------------
 
-||| Tries to retrieve an element of the given type by looking
-||| up its ID in the DOM. Unlike `getElementById`, this will throw
-||| an exception in the `JSIO` monad if the element is not found
-||| or can't be safely cast to the desired type.
-export
-strictGetElementById : SafeCast t => (tag,id : String) -> JSIO t
-strictGetElementById tag id = do
-  Nothing <- castElementById t id | Just t => pure t
-  liftJSIO $ throwError $
-    Caught "Web.MVC.Reactimate.strictGetElementById: Could not find \{tag} with id \{id}"
+||| Type alias for an event handler
+public export
+0 Handler : Type -> Type
+Handler e = e -> JSIO ()
 
-||| Tries to retrieve a HTMLElement by looking
-||| up its ID in the DOM. Unlike `getElementById`, this will throw
-||| an exception in the `JSIO` monad if the element is not found
-||| or can't be safely cast to the desired type.
-export %inline
-strictGetHTMLElementById : (tag,id : String) -> JSIO HTMLElement
-strictGetHTMLElementById = strictGetElementById
-
-||| Tries to retrieve an element of the given type by looking
-||| up its ID in the DOM. Unlike `getElementById`, this will throw
-||| an exception in the `JSIO` monad if the element is not found
-||| or can't be safely cast to the desired type.
-export
-getElementByRef : (r : ElemRef) -> JSIO (ElemType r)
-getElementByRef (Id {tag} _ id) = strictGetElementById tag id
-getElementByRef (Class _ class) = getElementByClass class
-getElementByRef Body            = body
-getElementByRef Document        = document
-getElementByRef Window          = window
-
-err : String
-err = "Web.MVC.Reactimate.castElementByRef"
-
-||| Tries to retrieve an element of the given type by looking
-||| up its ID in the DOM. Unlike `getElementById`, this will throw
-||| an exception in the `JSIO` monad if the element is not found
-||| or can't be safely cast to the desired type.
-export
-castElementByRef : SafeCast t => ElemRef -> JSIO t
-castElementByRef (Id {tag} _ id) = strictGetElementById tag id
-castElementByRef (Class _ class) = getElementByClass class
-castElementByRef Body            = body >>= tryCast err
-castElementByRef Document        = document >>= tryCast err
-castElementByRef Window          = window >>= tryCast err
-
-setVM : ElemRef -> SetValidityTag t -> String -> JSIO ()
-setVM r SVButton s   = castElementByRef r >>= \x => HTMLButtonElement.setCustomValidity x s
-setVM r SVFieldSet s = castElementByRef r >>= \x => HTMLFieldSetElement.setCustomValidity x s
-setVM r SVInput s    = castElementByRef r >>= \x => HTMLInputElement.setCustomValidity x s
-setVM r SVObject s   = castElementByRef r >>= \x => HTMLObjectElement.setCustomValidity x s
-setVM r SVOutput s   = castElementByRef r >>= \x => HTMLOutputElement.setCustomValidity x s
-setVM r SVSelect s   = castElementByRef r >>= \x => HTMLSelectElement.setCustomValidity x s
-setVM r SVTextArea s = castElementByRef r >>= \x => HTMLTextAreaElement.setCustomValidity x s
-
-setVal : ElemRef -> ValueTag t -> String -> JSIO ()
-setVal r VButton s   = castElementByRef r >>= (HTMLButtonElement.value =. s)
-setVal r VData s     = castElementByRef r >>= (HTMLDataElement.value =. s)
-setVal r VInput s    = castElementByRef r >>= (HTMLInputElement.value =. s)
-setVal r VOption s   = castElementByRef r >>= (HTMLOptionElement.value =. s)
-setVal r VOutput s   = castElementByRef r >>= (HTMLOutputElement.value =. s)
-setVal r VParam s    = castElementByRef r >>= (HTMLParamElement.value =. s)
-setVal r VSelect s   = castElementByRef r >>= (HTMLSelectElement.value =. s)
-setVal r VTextArea s = castElementByRef r >>= (HTMLTextAreaElement.value =. s)
-
-export
-setValidityMessage : (r : ElemRef) -> SetValidity r => String -> JSIO ()
-setValidityMessage (Id t i) @{SV @{p}} = setVM (Id t i) p
-
-export
-setValue : (r : ElemRef) -> Value r => String -> JSIO ()
-setValue (Id t i) @{V @{p}} = setVal (Id t i) p
+||| Type alias for a handler of a list of possible events
+public export
+0 SHandler : List Type -> Type
+SHandler es = HSum es -> JSIO ()
 
 --------------------------------------------------------------------------------
 --          Registering Events
@@ -116,7 +37,7 @@ setValue (Id t i) @{V @{p}} = setVal (Id t i) p
 ||| Use this, for instance, to register `DOMEvents` at
 ||| a HTMLElement of a static document.
 export
-registerDOMEvent : (e -> JSIO ()) -> EventTarget -> DOMEvent e -> JSIO ()
+registerDOMEvent : Handler e -> EventTarget -> DOMEvent e -> JSIO ()
 registerDOMEvent handle el de = case de of
   Input f      => inst "input" inputInfo f
   Change f     => inst "change" changeInfo f
@@ -151,7 +72,7 @@ registerDOMEvent handle el de = case de of
       addEventListener el s (Just c)
 
 parameters {0    e : Type}
-           (handle : e -> JSIO ())
+           (handle : Handler e)
 
   ||| Manually register an event handler at the given element
   export
@@ -177,70 +98,19 @@ parameters {0    e : Type}
 
   export
   setAttributesRef : ElemRef -> List (Attribute e) -> JSIO ()
-  setAttributesRef el = traverseJSIO_ (setAttributeRef el)
-
---------------------------------------------------------------------------------
---          DOM Update
---------------------------------------------------------------------------------
-
-nodeList : DocumentFragment -> List (HSum [Node,String])
-nodeList df = [inject $ df :> Node]
-
-||| Replaces all children of the given node with a new document fragment.
-export %inline
-replaceChildren : Element -> DocumentFragment -> JSIO ()
-replaceChildren elem = replaceChildren elem . nodeList
-
-||| Appends the given document fragment to a DOM element's children
-export %inline
-appendDF : Element -> DocumentFragment -> JSIO ()
-appendDF elem = append elem . nodeList
-
-||| Prepends the given document fragment to a DOM element's children
-export %inline
-prependDF : Element -> DocumentFragment -> JSIO ()
-prependDF elem = prepend elem . nodeList
-
-||| Inserts the given document fragment after a DOM element.
-export %inline
-afterDF : Element -> DocumentFragment -> JSIO ()
-afterDF elem = after elem . nodeList
-
-||| Inserts the given document fragment before a DOM element.
-export %inline
-beforeDF : Element -> DocumentFragment -> JSIO ()
-beforeDF elem = before elem . nodeList
-
-||| Inserts the given document fragment before a DOM element.
-export %inline
-replaceDF : Element -> DocumentFragment -> JSIO ()
-replaceDF elem = replaceWith elem . nodeList
-
-public export
-data DOMUpdate : Type -> Type where
-  Children    : ElemRef -> (ns : List (Node e)) -> DOMUpdate e
-  Replace     : ElemRef -> (ns : List (Node e)) -> DOMUpdate e
-  Append      : ElemRef -> (ns : List (Node e)) -> DOMUpdate e
-  Prepend     : ElemRef -> (ns : List (Node e)) -> DOMUpdate e
-  After       : ElemRef -> (ns : List (Node e)) -> DOMUpdate e
-  Before      : ElemRef -> (ns : List (Node e)) -> DOMUpdate e
-  Attr        : ElemRef -> Attribute e -> DOMUpdate e
-  Value       : (r : ElemRef) -> Value r => String -> DOMUpdate e
-  ValidityMsg : (r : ElemRef) -> SetValidity r => String -> DOMUpdate e
-  Remove      : ElemRef -> DOMUpdate e
-  NoAction    : DOMUpdate e
+  setAttributesRef el = traverseList_ (setAttributeRef el)
 
 --------------------------------------------------------------------------------
 --          Node Preparation
 --------------------------------------------------------------------------------
 
-parameters {0    e : Type}         -- event type
-           (handle : e -> JSIO ()) -- event handler
+parameters {0    e : Type}      -- event type
+           (handle : Handler e) -- event handler
 
   createNode : Document -> String -> List (Attribute e) -> JSIO Element
   createNode doc str xs = do
     el <- createElement doc str
-    traverseJSIO_ (setAttribute handle el) xs
+    traverseList_ (setAttribute handle el) xs
     pure el
 
   addNodes :
@@ -273,7 +143,7 @@ parameters {0    e : Type}         -- event type
 
   addNode doc p Empty      = pure ()
 
-  addNodes doc p = assert_total $ traverseJSIO_ (addNode doc p)
+  addNodes doc p = assert_total $ traverseList_ (addNode doc p)
 
   setupNodes :
        (Element -> DocumentFragment -> JSIO ())
@@ -370,6 +240,7 @@ parameters {0    e : Type}         -- event type
   ||| Execute a single DOM update instruction
   export
   updateDOM1 : DOMUpdate e -> JSIO ()
+  updateDOM1 (Render x s)      = render x s
   updateDOM1 (Children x ns)   = innerHtmlAtN x ns
   updateDOM1 (Replace x ns)    = replaceN x ns
   updateDOM1 (Append x ns)     = appendN x ns
@@ -385,4 +256,27 @@ parameters {0    e : Type}         -- event type
   ||| Execute several DOM update instructions
   export %inline
   updateDOM : List (DOMUpdate e) -> JSIO ()
-  updateDOM = traverseJSIO_ updateDOM1
+  updateDOM = traverseList_ updateDOM1
+
+export
+runDOM :
+     (adjST   : e -> s -> s)
+  -> (display : e -> s -> List (DOMUpdate e))
+  -> (handler : Handler e)
+  -> (event   : e)
+  -> (state   : s)
+  -> JSIO s
+runDOM adjST display handler event state =
+  let st2 := adjST event state
+   in updateDOM handler (display event st2) $> st2
+
+export %inline
+injectDOM :
+     {auto has : Has e es}
+  -> (adjST   : e -> s -> s)
+  -> (display : e -> s -> List (DOMUpdate e))
+  -> (handler : SHandler es)
+  -> (event   : e)
+  -> (state   : s)
+  -> JSIO s
+injectDOM f g h = runDOM f g (h . inject)

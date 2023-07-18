@@ -19,17 +19,15 @@ import Data.Either
 import Data.Nat
 import Data.Vect
 
-import Derive.Prelude
-
 import Examples.CSS.Colors
 import Examples.CSS.Balls
 import Examples.Util
 
 import Text.CSS.Color
 import Web.MVC
+import Web.MVC.Animate
 import Web.MVC.Canvas
 
-%language ElabReflection
 %default total
 ```
 
@@ -69,6 +67,15 @@ r = 0.1
 -- start velocity in m/s
 v0 : Double
 v0 = 4
+
+(+) : V2 -> V2 -> V2
+[u,v] + [x,y] = [u+x, v+y]
+
+(*) : Double -> V2 -> V2
+m * [x,y] = [m * x, m * y]
+
+fpsCount : Nat
+fpsCount = 15
 ```
 
 We need a data type to hold the current state of a
@@ -141,33 +148,51 @@ is used to move the animation forward by `dt`
 milliseconds.
 
 ```idris
--- public export
--- data Ev = Run | NumIn | Next DTime
---
--- next : Ev -> Event Bits32
--- next (Next d) = Ev d
--- next _        = NoEv
---
--- %runElab derive "Ev" [Show,Eq]
---
--- -- canvas width and height
--- wcanvas : Bits32
--- wcanvas = 520
---
--- content : Node Ev
--- content =
---   div [ class ballsContent ]
---     [ lbl "Number of balls:" lblCount
---     , input [ ref txtCount
---             , onInput (const NumIn)
---             , onEnterDown Run
---             , class widget
---             , placeholder "Range: [1,1000]"
---             ] []
---     , button [ref btnRun, onClick Run, classes [widget,btn]] ["Run"]
---     , div [ref log] []
---     , canvas [ref out, width wcanvas, height wcanvas] []
---     ]
+public export
+data BallsEv : Type where
+  Init  : BallsEv
+  Run   : BallsEv
+  NumIn : Either String Nat -> BallsEv
+  Next  : DTime -> BallsEv
+
+public export
+record BallsST where
+  constructor BS
+  balls    : List Ball
+  count    : Nat
+  dtime    : DTime
+  numBalls : Maybe Nat
+  cleanUp  : IO ()
+
+export
+init : BallsST
+init = BS [] fpsCount 0 Nothing (pure ())
+
+-- canvas width and height
+wcanvas : Bits32
+wcanvas = 520
+
+read : String -> Either String Nat
+read s =
+  let n = cast {to = Nat} s
+   in if 0 < n && n <= 5000
+        then Right n
+        else Left "Enter a number between 1 and 1000"
+
+content : Node BallsEv
+content =
+  div [ class ballsContent ]
+    [ lbl "Number of balls:" lblCount
+    , input [ ref txtCount
+            , onInput (NumIn . read)
+            , onEnterDown Run
+            , class widget
+            , placeholder "Range: [1,5000]"
+            ] []
+    , button [ref btnRun, onClick Run, classes [widget,btn]] ["Run"]
+    , div [ref log] []
+    , canvas [ref out, width wcanvas, height wcanvas] []
+    ]
 ```
 
 ## Controller
@@ -195,21 +220,21 @@ sure our balls don't leave the room:
 -- is still in the room. If this is not the case, we simulate
 -- a bouncing off the walls by inverting the x-velocity (if the
 -- ball hit a wall) or the y-velocity (if the ball hit the ground)
--- checkBounds : Ball -> Ball
--- checkBounds b@(MkBall c [px,py] [vx,vy]) =
---   if      (py <= r  && vy < 0)      then (MkBall c [px,py] [vx,-vy])
---   else if (px <= r  && vx < 0)      then (MkBall c [px,py] [-vx,vy])
---   else if (px >= (w - r) && vx > 0) then (MkBall c [px,py] [-vx,vy])
---   else b
---
--- -- moves a ball after a given time delta
--- -- by adjusting its position and velocity
--- nextBall : DTime -> Ball -> Ball
--- nextBall delta (MkBall c p v) =
---   let dt   = cast delta / the Double 1000 -- time in seconds
---       v2   = v ^+^ (dt *^ acc)
---       p2   = p ^+^ (dt / 2 *^ (v ^+^ v2))
---    in checkBounds (MkBall c p2 v2)
+checkBounds : Ball -> Ball
+checkBounds b@(MkBall c [px,py] [vx,vy]) =
+  if      (py <= r  && vy < 0)      then (MkBall c [px,py] [vx,-vy])
+  else if (px <= r  && vx < 0)      then (MkBall c [px,py] [-vx,vy])
+  else if (px >= (w - r) && vx > 0) then (MkBall c [px,py] [-vx,vy])
+  else b
+
+-- moves a ball after a given time delta
+-- by adjusting its position and velocity
+nextBall : DTime -> Ball -> Ball
+nextBall delta (MkBall c p v) =
+  let dt   = cast delta / the Double 1000 -- time in seconds
+      v2   = v + (dt * acc)
+      p2   = p + (dt / 2 * (v + v2))
+   in checkBounds (MkBall c p2 v2)
 ```
 
 We also need a way to create an initial set of
@@ -218,27 +243,27 @@ them at a height of nine meters, giving them
 slightly different colors and starting velocities:
 
 ```idris
--- ||| Generates a list of balls to start the simulation.
--- export
--- initialBalls : (n : Nat) -> List Ball
--- initialBalls n = go n Nil
---   where col : Bits8 -> Color
---         col 0 = comp100
---         col 1 = comp80
---         col 2 = comp60
---         col 3 = comp40
---         col _ = comp20
---
---         ball : Nat -> Ball
---         ball k =
---           let factor = cast {to = Double} k / (cast n - 1.0)
---               phi    = pi * factor
---               x0     = 1.0 + factor * 8
---            in MkBall (col $ cast k `mod` 5) [x0,9] (v0 *^ [sin phi, cos phi])
---
---         go : (k : Nat) -> List Ball -> List Ball
---         go 0     bs = bs
---         go (S k) bs = go k $ ball k :: bs
+||| Generates a list of balls to start the simulation.
+export
+initialBalls : (n : Nat) -> List Ball
+initialBalls n = go n Nil
+  where col : Bits8 -> Color
+        col 0 = comp100
+        col 1 = comp80
+        col 2 = comp60
+        col 3 = comp40
+        col _ = comp20
+
+        ball : Nat -> Ball
+        ball k =
+          let factor = cast {to = Double} k / (cast n - 1.0)
+              phi    = pi * factor
+              x0     = 1.0 + factor * 8
+           in MkBall (col $ cast k `mod` 5) [x0,9] (v0 * [sin phi, cos phi])
+
+        go : (k : Nat) -> List Ball -> List Ball
+        go 0     bs = bs
+        go (S k) bs = go k $ ball k :: bs
 ```
 
 The controller handling the animation will use a state
@@ -246,46 +271,48 @@ accumulator for the balls and advance them the given
 number of milliseconds:
 
 ```idris
--- renderBalls : List Ball -> JSIO ()
--- renderBalls bs =
---   liftJSIO . render $ MkCanvas out (cast wcanvas) (cast wcanvas) (ballsToScene bs)
---
--- animation : List Ball -> MSF JSIO Ev ()
--- animation bs =
---   arr next ?>-
---     [ accumulateWith (map . nextBall) bs >>! renderBalls
---     , fps 15 ?>> showFPS ^>> text log
---     ]
+export
+showFPS : Bits32 -> String
+showFPS 0 = ""
+showFPS n =
+  let val := 1000 * cast fpsCount `div` n
+   in "FPS: \{show val}"
+
+adjST : BallsEv -> BallsST -> BallsST
+adjST Init      _ = init
+adjST Run       s = {balls := maybe s.balls initialBalls s.numBalls} s
+adjST (NumIn x) s = {numBalls := eitherToMaybe x} s
+adjST (Next m)  s = case s.count of
+  0   => { balls $= map (nextBall m), dtime := 0, count := fpsCount } s
+  S k => { balls $= map (nextBall m), dtime $= (+m), count := k } s
+
+displayST : BallsST -> List (DOMUpdate BallsEv)
+displayST s =
+  [ disabledM btnRun s.numBalls
+  , Render out (ballsToScene s.balls)
+  , updateIf (s.count == 0) (text log $ showFPS s.dtime)
+  ]
+
+displayEv : BallsEv -> DOMUpdate BallsEv
+displayEv Init      = child exampleDiv content
+displayEv Run       = NoAction
+displayEv (NumIn x) = validate txtCount x
+displayEv (Next m)  = NoAction
+
+display : BallsEv -> BallsST -> List (DOMUpdate BallsEv)
+display e s = displayEv e :: displayST s
+
+export
+runBalls : Has BallsEv es => SHandler es -> BallsEv -> BallsST -> JSIO BallsST
+runBalls h Init s = do
+  s2   <- injectDOM adjST display h Init s
+  stop <- animate (h . inject . Next)
+  pure $ {cleanUp := stop} s2
+runBalls h e s = injectDOM adjST display h e s
 ```
 
 We now only need to write the controllers for reading user
 input and running the application:
-
-```idris
--- read : String -> Either String (List Ball)
--- read s =
---   let n = cast {to = Nat} s
---    in if 0 < n && n <= 1000
---         then Right (initialBalls n)
---         else Left "Enter a number between 1 and 1000"
---
--- msf : MSF JSIO Ev ()
--- msf = drswitchWhen neutral initialBalls animation
---   where readInit : MSF JSIO Ev (Either String (List Ball))
---         readInit =    getInput NumIn read txtCount
---                  >>>  observeWith (isLeft ^>> disabledAt btnRun)
---
---         initialBalls : MSF JSIO Ev (MSFEvent $ List Ball)
---         initialBalls =   fan [readInit, is Run]
---                      >>> rightOnEvent
---
--- export
--- ui : Handler JSIO Ev => JSIO (MSF JSIO Ev (), JSIO ())
--- ui = do
---   innerHtmlAt exampleDiv content
---   clear <- animate (handle . Next)
---   pure (msf, liftIO clear)
-```
 
 <!-- vi: filetype=idris2:syntax=markdown
 -->

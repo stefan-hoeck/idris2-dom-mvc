@@ -229,8 +229,7 @@ dispState gs =
         ]
 
 renderGame : GameState -> JSIO ()
-renderGame gs =
-  render $ MkCanvas pic (cast wcanvas) (cast wcanvas) (dispState gs)
+renderGame gs = render pic (dispState gs)
 ```
 
 ## Controller

@@ -1,7 +1,9 @@
 module Web.MVC
 
-import JS
 import Data.IORef
+
+import public JS
+import public Web.MVC.DOMUpdate
 import public Web.MVC.ElemRef
 import public Web.MVC.Event
 import public Web.MVC.Reactimate
@@ -12,12 +14,12 @@ runMVC :
      {0 e,s : Type}
   -> (initEv  : e)
   -> (initST  : s)
-  -> (modST   : (e -> JSIO ()) -> e -> s -> JSIO s)
+  -> (modST   : Handler e -> e -> s -> JSIO s)
   -> JSIO ()
 runMVC initEv initST modST = do
   ref <- newIORef initST
 
-  let covering handler : e -> JSIO ()
+  let covering handler : Handler e
       handler ev = do
         stOld <- readIORef ref
         stNew <- modST handler ev stOld

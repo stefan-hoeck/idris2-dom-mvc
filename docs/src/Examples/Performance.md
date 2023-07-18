@@ -31,15 +31,16 @@ module Examples.Performance
 import Data.DPair
 import Data.Either
 import Data.List.Quantifiers.Extra
+import Data.List.TR
 import Data.Nat
 import Data.String
+
 import Examples.CSS.Performance
 import Examples.Util
-import Derive.Prelude
-import JS
-import Web.MVC
 
-%language ElabReflection
+import Web.MVC
+import Web.MVC.Animate
+
 %default total
 ```
 
@@ -58,21 +59,22 @@ a custom data type:
 
 ```idris
 public export
+0 PosNat : Type
+PosNat = Subset Nat IsSucc
+
+public export
 data PerfEv : Type where
   Init       : PerfEv
-  NumChanged : String -> PerfEv
+  NumChanged : Either String PosNat -> PerfEv
   Reload     : PerfEv
   Set        : Nat -> PerfEv
-
-PosNat : Type
-PosNat = Subset Nat IsSucc
 ```
 
 We also require a function for input validation:
 
 ```idris
-validate : String -> Either String PosNat
-validate s = case cast {to = Nat} s of
+read : String -> Either String PosNat
+read s = case cast {to = Nat} s of
   Z       => Left "Not a positive natural number: \{s}"
   n@(S _) => Right $ Element n ItIsSucc
 
@@ -80,11 +82,11 @@ public export
 record PerfST where
   constructor P
   sum : Nat
-  num : Either String PosNat
+  num : Maybe PosNat
 
 export
 init : PerfST
-init = P 0 $ validate ""
+init = P 0 Nothing
 ```
 
 ## View
@@ -119,12 +121,8 @@ constant stack space. Luckily, in recent commits of the Idris project,
 modification.
 
 ```idris
-iterateTR : SnocList t -> Nat -> (t -> t) -> t -> List t
-iterateTR sx 0     f x = sx <>> []
-iterateTR sx (S k) f x = iterateTR (sx :< x) k f (f x)
-
 btns : PosNat -> Node PerfEv
-btns (Element n _) = div [class grid] . map btn $ iterateTR [<] n (+1) 1
+btns n = div [class grid] . map btn $ iterateTR (fst n) (+1) 1
 ```
 
 And, finally, the overall layout of the application:
@@ -135,7 +133,7 @@ content =
   div [ class performanceContent ]
     [ lbl "Number of buttons:" numButtonsLbl
     , input [ ref natIn
-            , onInput NumChanged
+            , onInput (NumChanged . read)
             , onEnterDown Reload
             , classes [widget, textIn]
             , placeholder "Enter a positive integer"
@@ -167,16 +165,9 @@ yet provide this functionality, but it is available
 from `Rhone.JS.Util`:
 
 ```idris
-%foreign "javascript:lambda:(w) => BigInt(new Date().getTime())"
-prim__time : PrimIO Integer
-
-||| Get the current time in milliseconds since 1970/01/01.
-currentTime : HasIO io => io Integer
-currentTime = primIO prim__time
-
-dispTime : Nat -> Integer -> String
-dispTime 1 ms = "\Loaded one button in \{show ms} ms."
-dispTime n ms = "\Loaded \{show n} buttons in \{show ms} ms."
+dispTime : PosNat -> Integer -> String
+dispTime (Element 1 _) ms = "\Loaded one button in \{show ms} ms."
+dispTime (Element n _) ms = "\Loaded \{show n} buttons in \{show ms} ms."
 ```
 
 The reactive behavior of the grid of buttons consists of
@@ -197,42 +188,31 @@ convenient to use.
 
 ```idris
 adjST : PerfEv -> PerfST -> PerfST
-adjST Init             = const init
-adjST (NumChanged str) = {num := validate str}
-adjST Reload           = {sum := 0}
-adjST (Set k)          = {sum $= (+k)}
+adjST Init           = const init
+adjST (NumChanged e) = {num := eitherToMaybe e}
+adjST Reload         = {sum := 0}
+adjST (Set k)        = {sum $= (+k)}
 
-display : PerfST -> List (DOMUpdate PerfEv)
-display (P sum num) =
-  [ Attr btnRun $ disabled (isLeft num)
-  , Children out [Text $ show sum]
-  ]
+displayST : PerfST -> List (DOMUpdate PerfEv)
+displayST s = [disabledM btnRun s.num, show out s.sum]
 
-act : PerfEv -> PerfST -> DOMUpdate PerfEv
-act Init           _ = Children exampleDiv [content]
-act (NumChanged _) s = ValidityMsg natIn (either id (const "") s.num)
-act (Set k)        _ = Attr (btnRef k) (disabled True)
-act Reload         s = case s.num of
-  Right n => Children buttons [btns n]
-  _       => NoAction
+displayEv : PerfEv -> PerfST -> DOMUpdate PerfEv
+displayEv Init           _ = child exampleDiv content
+displayEv (NumChanged e) _ = validate natIn e
+displayEv (Set k)        _ = disabled (btnRef k) True
+displayEv Reload         s = maybe NoAction (child buttons . btns) s.num
+
+display : PerfEv -> PerfST -> List (DOMUpdate PerfEv)
+display e s = displayEv e s :: displayST s
 
 export
-runPerf :
-     {auto has : Has PerfEv es}
-  -> (HSum es -> JSIO ())
-  -> PerfEv
-  -> PerfST
-  -> JSIO PerfST
+runPerf : Has PerfEv es => SHandler es -> PerfEv -> PerfST -> JSIO PerfST
 runPerf h e s = do
-  t1 <- currentTime
-  let s' := adjST e s
-  updateDOM (h . inject) (act e s' :: display s')
-  t2 <- currentTime
-  case (e,s'.num) of
-    (Reload,Right n) =>
-      updateDOM h [Children time [Text $ dispTime (fst n) (t2 - t1)]]
+  (s2,dt) <- timed (injectDOM adjST display h e s)
+  case (e,s2.num) of
+    (Reload,Just n) => updateDOM h [text time $ dispTime n dt]
     _               => pure ()
-  pure s'
+  pure s2
 ```
 
 Here is the function used to create a non-zero number of

@@ -1,9 +1,10 @@
 module Web.MVC.Canvas.Shape
 
+import Control.Monad.Either.Extra
 import JS
 import Web.Html
 import Web.MVC.Canvas.Angle
-import Web.MVC.Reactimate
+import Web.MVC.ElemRef
 
 %default total
 
@@ -73,7 +74,7 @@ applySegment ctxt (ArcTo x1 y1 x2 y2 radius) =
 mutual
   export
   applyAll : CanvasRenderingContext2D -> List Shape -> JSIO ()
-  applyAll ctxt = assert_total $ traverseJSIO_ (apply ctxt)
+  applyAll ctxt = assert_total $ traverseList_ (apply ctxt)
 
   export
   apply : CanvasRenderingContext2D -> Shape -> JSIO ()
@@ -82,7 +83,7 @@ mutual
   apply ctxt (Rect x y w h Clear)  = clearRect ctxt x y w h
   apply ctxt (Path ss st)          = do
     beginPath ctxt
-    traverseJSIO_ (applySegment ctxt) ss
+    traverseList_ (applySegment ctxt) ss
     case st of
       Fill   => fill ctxt
       Stroke => stroke ctxt

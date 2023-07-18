@@ -1,18 +1,18 @@
 module Examples.Fractals
 
-import Data.DPair
 import Data.Either
-import Data.IORef
-import Data.Nat
-import Data.So
+import Data.Refined.Integer
+
+import Derive.Prelude
+import Derive.Refined
+
 import Examples.CSS.Fractals
 import Examples.Fractals.Dragon
 import Examples.Util
-import Derive.Prelude
 import Web.MVC
 
-%language ElabReflection
 %default total
+%language ElabReflection
 
 --------------------------------------------------------------------------------
 --          Model
@@ -20,105 +20,100 @@ import Web.MVC
 
 data Fractal = Dragon
 
-%runElab derive "Fractal" [Show,Eq]
-
-data Ev = Fract Fractal | Iter | Redraw | Run | Inc
-
-%runElab derive "Ev" [Show,Eq]
-
-MaxIter : Nat
-MaxIter = 18
+MinIter, MaxIter, MinDelay, MaxDelay : Integer
+MinIter  = 2
+MaxIter  = 18
+MinDelay = 100
+MaxDelay = 10000
 
 record Iterations where
-  constructor MkIterations
-  value : Nat
-  0 prf : LTE value MaxIter
+  constructor I
+  value : Integer
+  0 prf : FromTo MinIter MaxIter value
 
 namespace Iterations
-  export
-  fromInteger :  (n : Integer)
-              -> {auto 0 prf : LTE (fromInteger n) MaxIter}
-              -> Iterations
-  fromInteger n = MkIterations (cast n) prf
+  %runElab derive "Iterations" [Show,Eq,Ord,RefinedInteger]
 
-  export
-  read : String -> Either String Iterations
-  read "0" = Right $ MkIterations 0 LTEZero
-  read s = case cast {to = Nat} s of
-    0 => Left "Not a natural number: \{s}"
-    n => case isLTE n MaxIter of
-      Yes prf   => Right $ MkIterations n prf
-      No contra => Left "Value must be <= \{show MaxIter}"
+record RedrawDelay where
+  constructor D
+  value : Integer
+  0 prf : FromTo MinDelay MaxDelay value
 
-isDelay : Bits32 -> Bool
-isDelay v = 100 <= v && v <= 10000
+namespace RedrawDelay
+  %runElab derive "RedrawDelay" [Show,Eq,Ord,RefinedInteger]
 
-record RedrawAfter where
-  constructor RA
-  value : Bits32
-  0 prf : So (isDelay value)
+readIter : String -> Either String Iterations
+readIter =
+  let err := "expected integer between \{show MinIter} and \{show MaxIter}"
+   in maybeToEither err . refineIterations . cast
 
-namespace RedrawAfter
-  export
-  read : String -> Either String RedrawAfter
-  read s =
-    let v = cast {to = Bits32} s
-     in case choose (isDelay v) of
-          Left oh => Right $ RA v oh
-          Right _ => Left $ "Enter a value between 100 and 10'000"
+readDelay : String -> Either String RedrawDelay
+readDelay =
+  let err := "expected integer between \{show MinDelay} and \{show MaxDelay}"
+   in maybeToEither err . refineRedrawDelay . cast
 
-record Config where
-  constructor MkConfig
+public export
+data FractEv : Type where
+  Init   : FractEv
+  Fract  : Fractal -> FractEv
+  Iter   : Either String Iterations -> FractEv
+  Redraw : Either String RedrawDelay -> FractEv
+  Run    : FractEv
+  Inc    : FractEv
+
+public export
+record FractST where
+  constructor FS
   fractal    : Fractal
   iterations : Iterations
-  redraw     : RedrawAfter
-
---------------------------------------------------------------------------------
---          Controller
---------------------------------------------------------------------------------
-
--- msf : (timer : RedrawAfter -> JSIO ()) -> MSF JSIO Ev ()
--- msf timer = drswitchWhen neutral config fractal
---   where fractal : Config -> MSF JSIO Ev ()
---         fractal c =
---           let Element dragons prf = mkDragons c.iterations.value
---            in ifIs Inc $ cycle dragons >>> innerHtml out
---
---         readAll : MSF JSIO Ev (Either String Config)
---         readAll =    MkConfig Dragon
---                 <$$> getInput Iter   read txtIter
---                 <**> getInput Redraw read txtRedraw
---                 >>>  observeWith (isLeft ^>> disabledAt btnRun)
---
---         config : MSF JSIO Ev (MSFEvent Config)
---         config =   fan [readAll, is Run]
---                >>> rightOnEvent
---                >>> observeWith (ifEvent $ arrM (liftJSIO . timer . redraw))
+  redraw     : RedrawDelay
 
 --------------------------------------------------------------------------------
 --          View
 --------------------------------------------------------------------------------
 
-content : Node Ev
+content : Node FractEv
 content =
   div [ class fractalContent ]
     [ lbl "Number of iterations:" lblIter
     , input [ ref txtIter
-            , onInput (const Iter)
+            , onInput (Iter . readIter)
             , onEnterDown Run
             , class widget
-            , placeholder "Range: [0, \{show MaxIter}]"
+            , placeholder "Range: [\{show MinIter}, \{show MaxIter}]"
             ] []
     , lbl "Iteration delay [ms]:" lblDelay
     , input [ ref txtRedraw
-            , onInput (const Redraw)
+            , onInput (Redraw . readDelay)
             , onEnterDown Run
             , class widget
-            , placeholder "Range: [100,10'000]"
+            , placeholder "Range: [\{show MinDelay}, \{show MinDelay}]"
             ] []
     , button [ref btnRun, onClick Run, classes [widget,btn]] ["Run"]
     , div [ref out] []
     ]
+
+-- --------------------------------------------------------------------------------
+-- --          Controller
+-- --------------------------------------------------------------------------------
+--
+-- -- msf : (timer : RedrawDelay -> JSIO ()) -> MSF JSIO Ev ()
+-- -- msf timer = drswitchWhen neutral config fractal
+-- --   where fractal : Config -> MSF JSIO Ev ()
+-- --         fractal c =
+-- --           let Element dragons prf = mkDragons c.iterations.value
+-- --            in ifIs Inc $ cycle dragons >>> innerHtml out
+-- --
+-- --         readAll : MSF JSIO Ev (Either String Config)
+-- --         readAll =    MkConfig Dragon
+-- --                 <$$> getInput Iter   read txtIter
+-- --                 <**> getInput Redraw read txtRedraw
+-- --                 >>>  observeWith (isLeft ^>> disabledAt btnRun)
+-- --
+-- --         config : MSF JSIO Ev (MSFEvent Config)
+-- --         config =   fan [readAll, is Run]
+-- --                >>> rightOnEvent
+-- --                >>> observeWith (ifEvent $ arrM (liftJSIO . timer . redraw))
 
 --------------------------------------------------------------------------------
 --          UI
@@ -133,7 +128,7 @@ content =
 --   let cleanup : JSIO ()
 --       cleanup = readIORef ref >>= traverse_ clearInterval
 --
---       timer   : RedrawAfter -> JSIO ()
+--       timer   : RedrawDelay -> JSIO ()
 --       timer ra = do
 --         cleanup
 --         newID <- setInterval ra.value (handle Inc)

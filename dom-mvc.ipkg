@@ -6,6 +6,7 @@ brief      = "Single page web applications"
 depends    = base      >= 0.6.0
            , dom
            , refined
+           , tailrec
 
 modules    = Text.CSS
            , Text.CSS.Angle
@@ -29,6 +30,8 @@ modules    = Text.CSS
            , Text.HTML.Tag
 
            , Web.MVC
+           , Web.MVC.Animate
+           , Web.MVC.DOMUpdate
            , Web.MVC.ElemRef
            , Web.MVC.Event
            , Web.MVC.Reactimate

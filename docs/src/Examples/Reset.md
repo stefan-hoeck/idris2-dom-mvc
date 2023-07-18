@@ -24,8 +24,6 @@ module Examples.Reset
 import Data.List.Quantifiers.Extra
 import Examples.CSS.Reset
 import Examples.Util
-import JS
-import Monocle
 import Web.MVC
 
 %default total
@@ -112,28 +110,21 @@ adjST : ResetEv -> Int8 -> Int8
 adjST Init    n = 0
 adjST (Mod f) n = f n
 
-display : Int8 -> List (DOMUpdate ResetEv)
-display n =
-  [ Attr btnDec   $ disabled (n <= -10)
-  , Attr btnInc   $ disabled (n >= 10)
-  , Attr btnReset $ disabled (n == 0)
-  , Children out [Text $ show n]
+displayST : Int8 -> List (DOMUpdate ResetEv)
+displayST n =
+  [ disabled btnDec   (n <= -10)
+  , disabled btnInc   (n >= 10)
+  , disabled btnReset (n == 0)
+  , show out n
   ]
 
-update : ResetEv -> Int8 -> List (DOMUpdate ResetEv)
-update Init    n = Children exampleDiv [content] :: display n
-update (Mod f) n = display n
+display : ResetEv -> Int8 -> List (DOMUpdate ResetEv)
+display Init    n = child exampleDiv content :: displayST n
+display (Mod f) n = displayST n
 
 export
-runReset :
-     {auto has : Has ResetEv es}
-  -> (HSum es -> JSIO ())
-  -> ResetEv
-  -> Int8
-  -> JSIO Int8
-runReset h e n =
-  let n' := adjST e n
-   in updateDOM (h . inject) (update e n') $> n'
+runReset : Has ResetEv es => SHandler es -> ResetEv -> Int8 -> JSIO Int8
+runReset = injectDOM adjST display
 ```
 
 In the code above, `(>>>)` is sequencing of stream functions

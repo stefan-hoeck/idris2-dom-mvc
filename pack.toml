@@ -8,8 +8,8 @@ type   = "local"
 path   = "docs"
 ipkg   = "docs.ipkg"
 
-[custom.all.monocle]
+[custom.all.tailrec]
 type   = "git"
-url    = "https://github.com/stefan-hoeck/idris2-monocle"
+url    = "https://github.com/stefan-hoeck/idris2-tailrec"
 commit = "latest:main"
-ipkg   = "monocle.ipkg"
+ipkg   = "tailrec.ipkg"

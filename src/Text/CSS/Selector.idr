@@ -3,7 +3,7 @@ module Text.CSS.Selector
 import Data.List
 import Data.String
 import Text.CSS.Property
-import Web.Dom
+import Text.HTML.Tag
 
 %default total
 
@@ -26,7 +26,7 @@ data Selector : Type where
   Star    : Selector
   Id      : String -> Selector
   Class   : String -> Selector
-  Elem    : {str : _} -> (0 tpe : ElementType str t) -> Selector
+  Elem    : {str : _} -> (0 tag : HTMLTag str) -> Selector
   Complex : Selector -> Combinator -> Selector -> Selector
   Nil     : Selector
   (::)    : Selector -> Selector -> Selector
@@ -221,7 +221,7 @@ classes []        = []
 classes (x :: xs) = class x :: classes xs
 
 export %inline
-elem : {str : _} -> (0 tpe : ElementType str t) -> Selector
+elem : {str : _} -> (0 tpe : HTMLTag str) -> Selector
 elem = Elem
 
 export %inline

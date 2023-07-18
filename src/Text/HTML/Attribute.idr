@@ -4,6 +4,8 @@ import Data.List
 import Data.Maybe
 import Data.String
 import Text.HTML.Event
+import Text.HTML.Tag
+import Text.HTML.Ref
 
 %default total
 
@@ -23,6 +25,7 @@ Show LoadType where
   show Lzy   = "lazy"
   show Eager = "eager"
 
+||| Enum representing different types of input elements
 public export
 data InputType =
     Button
@@ -65,266 +68,256 @@ Show InputType where
   show URL      = "url"
   show Week     = "week"
 
+||| An attribute indexed by the `HTMLTag` used for the element
+||| in question.
+|||
+||| This allows us to make sure we don't use invalid `Ref`s (which can
+||| be later used to retrieve an element from the DOM) in a HTML node.
 public export
-data Attribute : (event : Type) -> Type where
-  Id    : (value : String) -> Attribute event
-  Str   : (name : String) -> (value : String) -> Attribute event
-  Bool  : (name : String) -> (value : Bool) -> Attribute event
-  Event : DOMEvent event -> Attribute event
+data Attribute : {0 k : Type} -> (t : k) -> (event : Type) -> Type where
+  Id    : {0 t : HTMLTag s} -> Ref t -> Attribute t event
+  Str   : (name : String) -> (value : String) -> Attribute t event
+  Bool  : (name : String) -> (value : Bool) -> Attribute t event
+  Event : DOMEvent event -> Attribute t event
 
 public export
-Attributes : Type -> Type
-Attributes = List . Attribute
+Attributes : {0 k : _} -> (t : k) -> Type -> Type
+Attributes t e = List (Attribute t e)
 
 export
-displayAttribute : Attribute ev -> Maybe String
-displayAttribute (Id va)        = Just #"id="\#{va}""#
+displayAttribute : Attribute t ev -> Maybe String
+displayAttribute (Id (Id va))   = Just #"id="\#{va}""#
 displayAttribute (Str nm va)    = Just #"\#{nm}="\#{va}""#
 displayAttribute (Bool nm True) = Just nm
 displayAttribute (Bool _ False) = Nothing
 displayAttribute (Event _)      = Nothing
 
 export
-displayAttributes : Attributes ev -> String
+displayAttributes : Attributes t ev -> String
 displayAttributes = fastConcat . intersperse " " . mapMaybe displayAttribute
 
 export
-getId : Attributes ev -> Maybe String
-getId (Id v       :: _) = Just v
-getId (Str "id" v :: t) = Just v
-getId (_          :: t) = getId t
-getId []                = Nothing
-
-export
-getEvents : Attributes ev -> List (DOMEvent ev)
-getEvents = go Nil
-  where go : List (DOMEvent ev) -> Attributes ev -> List (DOMEvent ev)
-        go es []              = es
-        go es (Event e :: xs) = go (e :: es) xs
-        go es (_ :: xs)       = go es xs
-
-export
-dispAttr : String -> (a -> String) -> a -> Attribute ev
+dispAttr : String -> (a -> String) -> a -> Attribute t ev
 dispAttr nm f =  Str nm . f
 
 export
-showAttr : Show a => String -> a -> Attribute ev
+showAttr : Show a => String -> a -> Attribute t ev
 showAttr nm = dispAttr nm show
 
 export %inline
-accesskey : String -> Attribute ev
+accesskey : String -> Attribute t ev
 accesskey = Str "accesskey"
 
 export %inline
-action : String -> Attribute ev
+action : String -> Attribute t ev
 action = Str "action"
 
 export %inline
-alt : String -> Attribute ev
+alt : String -> Attribute t ev
 alt = Str "alt"
 
 export %inline
-autocapitalize : Bool -> Attribute ev
+autocapitalize : Bool -> Attribute t ev
 autocapitalize = Bool "autocapitalize"
 
 export %inline
-autocomplete : Bool -> Attribute ev
+autocomplete : Bool -> Attribute t ev
 autocomplete = Bool "autocomplete"
 
 export %inline
-autofocus : Bool -> Attribute ev
+autofocus : Bool -> Attribute t ev
 autofocus = Bool "autofocus"
 
 export %inline
-autoplay : Bool -> Attribute ev
+autoplay : Bool -> Attribute t ev
 autoplay = Bool "autoplay"
 
 export %inline
-checked : Bool -> Attribute ev
+checked : Bool -> Attribute t ev
 checked = Bool "checked"
 
 export %inline
-cite : String -> Attribute ev
+cite : String -> Attribute t ev
 cite = Str "cite"
 
 export %inline
-class : String -> Attribute ev
+class : String -> Attribute t ev
 class = Str "class"
 
 export %inline
-classes : List String -> Attribute ev
+classes : List String -> Attribute t ev
 classes = dispAttr "class" (fastConcat . intersperse " ")
 
 export %inline
-cols : Bits32 -> Attribute ev
+cols : Bits32 -> Attribute t ev
 cols = showAttr "cols"
 
 export %inline
-colspan : Bits32 -> Attribute ev
+colspan : Bits32 -> Attribute t ev
 colspan = showAttr "colspan"
 
 export %inline
-contenteditable : Bool -> Attribute ev
+contenteditable : Bool -> Attribute t ev
 contenteditable = Bool "contenteditable"
 
 export %inline
-controls : Bool -> Attribute ev
+controls : Bool -> Attribute t ev
 controls = Bool "controls"
 
 export %inline
-data_ : String -> Attribute ev
+data_ : String -> Attribute t ev
 data_ = Str "data"
 
 export %inline
-dir : Dir -> Attribute ev
+dir : Dir -> Attribute t ev
 dir = showAttr "dir"
 
 export %inline
-disabled : Bool -> Attribute ev
+disabled : Bool -> Attribute t ev
 disabled = Bool "disabled"
 
 export %inline
-download : String -> Attribute ev
+download : String -> Attribute t ev
 download = Str "download"
 
 export %inline
-draggable : Bool -> Attribute ev
+draggable : Bool -> Attribute t ev
 draggable = Bool "draggable"
 
 export %inline
-for : String -> Attribute ev
+for : String -> Attribute t ev
 for = Str "for"
 
 export %inline
-form : String -> Attribute ev
+form : String -> Attribute t ev
 form = Str "form"
 
 export %inline
-height : Bits32 -> Attribute ev
+height : Bits32 -> Attribute t ev
 height = showAttr "height"
 
 export %inline
-hidden : Bool -> Attribute ev
+hidden : Bool -> Attribute t ev
 hidden = Bool "hidden"
 
 export %inline
-href : String -> Attribute ev
+href : String -> Attribute t ev
 href = Str "href"
 
 export %inline
-hreflang : String -> Attribute ev
+hreflang : String -> Attribute t ev
 hreflang = Str "hreflang"
 
 export %inline
-id : String -> Attribute ev
-id = Id
+id : String -> Attribute t ev
+id = Str "id"
 
 export %inline
-label : String -> Attribute ev
+label : String -> Attribute t ev
 label = Str "label"
 
 export %inline
-lang : String -> Attribute ev
+lang : String -> Attribute t ev
 lang = Str "lang"
 
 export %inline
-loading : LoadType -> Attribute ev
+loading : LoadType -> Attribute t ev
 loading = showAttr "loading"
 
 export %inline
-list : String -> Attribute ev
+list : String -> Attribute t ev
 list = Str "list"
 
 export %inline
-loop : Bool -> Attribute ev
+loop : Bool -> Attribute t ev
 loop = Bool "loop"
 
 export %inline
-maxlength : Bits32 -> Attribute ev
+maxlength : Bits32 -> Attribute t ev
 maxlength = showAttr "maxlength"
 
 export %inline
-minlength : Bits32 -> Attribute ev
+minlength : Bits32 -> Attribute t ev
 minlength = showAttr "minlength"
 
 export %inline
-multiple : Bool -> Attribute ev
+multiple : Bool -> Attribute t ev
 multiple = Bool "multiple"
 
 export %inline
-muted : Bool -> Attribute ev
+muted : Bool -> Attribute t ev
 muted = Bool "muted"
 
 export %inline
-name : String -> Attribute ev
+name : String -> Attribute t ev
 name = Str "name"
 
 export %inline
-placeholder : String -> Attribute ev
+placeholder : String -> Attribute t ev
 placeholder = Str "placeholder"
 
 export %inline
-readonly : Bool -> Attribute ev
+readonly : Bool -> Attribute t ev
 readonly = Bool "readonly"
 
 export %inline
-required : Bool -> Attribute ev
+required : Bool -> Attribute t ev
 required = Bool "required"
 
 export %inline
-reverse : Bool -> Attribute ev
+reverse : Bool -> Attribute t ev
 reverse = Bool "reverse"
 
 export %inline
-rows : Bits32 -> Attribute ev
+rows : Bits32 -> Attribute t ev
 rows = showAttr "rows"
 
 export %inline
-rowspan : Bits32 -> Attribute ev
+rowspan : Bits32 -> Attribute t ev
 rowspan = showAttr "rowspan"
 
 export %inline
-selected : Bool -> Attribute ev
+selected : Bool -> Attribute t ev
 selected = Bool "selected"
 
 export %inline
-spellcheck : Bool -> Attribute ev
+spellcheck : Bool -> Attribute t ev
 spellcheck = Bool "spellcheck"
 
 export %inline
-src : String -> Attribute ev
+src : String -> Attribute t ev
 src = Str "src"
 
 export %inline
-style : String -> Attribute ev
+style : String -> Attribute t ev
 style = Str "style"
 
 export %inline
-tabindex : Int32 -> Attribute ev
+tabindex : Int32 -> Attribute t ev
 tabindex = showAttr "tabindex"
 
 export %inline
-target : String -> Attribute ev
+target : String -> Attribute t ev
 target = Str "target"
 
 export %inline
-title : String -> Attribute ev
+title : String -> Attribute t ev
 title = Str "title"
 
 export %inline
-type : InputType -> Attribute ev
+type : InputType -> Attribute t ev
 type = showAttr "type"
 
 export %inline
-value : String -> Attribute ev
+value : String -> Attribute t ev
 value = Str "value"
 
 export %inline
-width : Bits32 -> Attribute ev
+width : Bits32 -> Attribute t ev
 width = showAttr "width"
 
 export %inline
-wrap : Bool -> Attribute ev
+wrap : Bool -> Attribute t ev
 wrap = Bool "wrap"
 
 --------------------------------------------------------------------------------
@@ -332,61 +325,61 @@ wrap = Bool "wrap"
 --------------------------------------------------------------------------------
 
 export %inline
-click : (MouseInfo -> Maybe ev) -> Attribute ev
+click : (MouseInfo -> Maybe ev) -> Attribute t ev
 click = Event . Click
 
 export %inline
-onClick : ev -> Attribute ev
+onClick : ev -> Attribute t ev
 onClick = click . const . Just
 
 export
-onLeftClick : ev -> Attribute ev
+onLeftClick : ev -> Attribute t ev
 onLeftClick va = click $ \mi => toMaybe (mi.button == 0) va
 
 export
-onRightClick : ev -> Attribute ev
+onRightClick : ev -> Attribute t ev
 onRightClick va = click $ \mi => toMaybe (mi.button == 2) va
 
 export
-onMiddleClick : ev -> Attribute ev
+onMiddleClick : ev -> Attribute t ev
 onMiddleClick va = click $ \mi => toMaybe (mi.button == 1) va
 
 export %inline
-dblClick : (MouseInfo -> Maybe ev) -> Attribute ev
+dblClick : (MouseInfo -> Maybe ev) -> Attribute t ev
 dblClick = Event . DblClick
 
 export %inline
-onDblClick : ev -> Attribute ev
+onDblClick : ev -> Attribute t ev
 onDblClick = dblClick . const . Just
 
 export
-onChange : (String -> ev) -> Attribute ev
+onChange : (String -> ev) -> Attribute t ev
 onChange f = Event . Change $ Just . f . value
 
 export
-onChecked : (Bool -> ev) -> Attribute ev
+onChecked : (Bool -> ev) -> Attribute t ev
 onChecked f = Event . Change $ Just . f . checked
 
 export
-onInput : (String -> ev) -> Attribute ev
+onInput : (String -> ev) -> Attribute t ev
 onInput f = Event . Input $ Just . f . value
 
 export
-onEnterDown : ev -> Attribute ev
+onEnterDown : ev -> Attribute t ev
 onEnterDown va = Event . KeyDown $ \k => toMaybe (k.key == "Enter") va
 
 export
-onEscDown : ev -> Attribute ev
+onEscDown : ev -> Attribute t ev
 onEscDown va = Event . KeyDown $ \k => toMaybe (k.key == "Escape") va
 
 export
-onKeyUp : (KeyInfo -> ev) -> Attribute ev
+onKeyUp : (KeyInfo -> ev) -> Attribute t ev
 onKeyUp f = Event . KeyUp $ Just . f
 
 export
-onBlur : ev -> Attribute ev
+onBlur : ev -> Attribute t ev
 onBlur = Event . Blur
 
 export
-onFocus : ev -> Attribute ev
+onFocus : ev -> Attribute t ev
 onFocus = Event . Focus

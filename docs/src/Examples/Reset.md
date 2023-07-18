@@ -21,7 +21,6 @@ so the *reset* button should be disabled in that case as well.
 ```idris
 module Examples.Reset
 
-import Data.List.Quantifiers.Extra
 import Examples.CSS.Reset
 import Examples.Util
 import Web.MVC
@@ -117,8 +116,8 @@ display ResetInit n = child exampleDiv content :: displayST n
 display (Mod f)   n = displayST n
 
 export
-runReset : Has ResetEv es => SHandler es -> ResetEv -> Int8 -> JSIO Int8
-runReset = injectDOM adjST display
+runReset : Handler ResetEv => Controller Int8 ResetEv
+runReset = runDOM adjST display
 ```
 
 In the code above, `(>>>)` is sequencing of stream functions

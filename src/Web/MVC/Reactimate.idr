@@ -2,12 +2,15 @@ module Web.MVC.Reactimate
 
 import Control.Monad.Either.Extra
 import Data.List.Quantifiers.Extra
+import Data.Either
+import Data.Maybe
+import Data.String
 import JS
+import Text.CSS
 import Text.HTML
 import Web.Dom
 import Web.Html
 import Web.MVC.Canvas
-import Web.MVC.DOMUpdate
 import Web.MVC.Event
 import Web.MVC.Output
 
@@ -19,67 +22,72 @@ import Web.MVC.Output
 
 ||| Type alias for an event handler
 public export
-0 Handler : Type -> Type
-Handler e = e -> JSIO ()
+record Handler (e : Type) where
+  [noHints]
+  constructor H
+  handle_ : e -> JSIO ()
 
-||| Type alias for a handler of a list of possible events
-public export
-0 SHandler : List Type -> Type
-SHandler es = HSum es -> JSIO ()
+export %inline
+handle : Handler e => e -> JSIO ()
+handle = handle_ %search
+
+export %inline
+inject : Has e es => Handler (HSum es) -> Handler e
+inject (H h) = H (h . inject)
 
 --------------------------------------------------------------------------------
 --          Registering Events
 --------------------------------------------------------------------------------
 
-||| Low level method for registering `DOMEvents` at
-||| HTML elements.
-|||
-||| Use this, for instance, to register `DOMEvents` at
-||| a HTMLElement of a static document.
-export
-registerDOMEvent : Handler e -> EventTarget -> DOMEvent e -> JSIO ()
-registerDOMEvent handle el de = case de of
-  Input f      => inst "input" inputInfo f
-  Change f     => inst "change" changeInfo f
-  Click f      => inst "click" mouseInfo f
-  DblClick f   => inst "dblclick" mouseInfo f
-  KeyDown f    => inst "keydown" keyInfo f
-  KeyUp f      => inst "keyup" keyInfo f
-  Blur v       => inst "blur" {a = Event} (const $ pure v) Just
-  Focus v      => inst "focus" {a = Event} (const $ pure v) Just
-  MouseDown f  => inst "mousedown" mouseInfo f
-  MouseUp f    => inst "mouseup" mouseInfo f
-  MouseEnter f => inst "mouseenter" mouseInfo f
-  MouseLeave f => inst "mouseleave" mouseInfo f
-  MouseOver f  => inst "mouseover" mouseInfo f
-  MouseOut f   => inst "mouseout" mouseInfo f
-  MouseMove f  => inst "mousemove" mouseInfo f
-  HashChange v => inst "hashchange" {a = Event} (const $ pure v) Just
+parameters {0 e    : Type}
+           {auto h : Handler e}
 
-  where
-    inst :
-         {0 a,b : _}
-      -> {auto c : SafeCast a}
-      -> String
-      -> (a -> JSIO b)
-      -> (b -> Maybe e)
-      -> JSIO ()
-    inst s conv f = do
-      c <- callback {cb = EventListener} $ \e => do
-        va <- tryCast_ a "Control.Monad.Dom.Interface.inst" e
-        conv va >>= maybe (pure ()) handle . f
+  ||| Low level method for registering `DOMEvents` at
+  ||| HTML elements.
+  |||
+  ||| Use this, for instance, to register `DOMEvents` at
+  ||| a HTMLElement of a static document.
+  export
+  registerDOMEvent : EventTarget -> DOMEvent e -> JSIO ()
+  registerDOMEvent el de = case de of
+    Input f      => inst "input" inputInfo f
+    Change f     => inst "change" changeInfo f
+    Click f      => inst "click" mouseInfo f
+    DblClick f   => inst "dblclick" mouseInfo f
+    KeyDown f    => inst "keydown" keyInfo f
+    KeyUp f      => inst "keyup" keyInfo f
+    Blur v       => inst "blur" {t = Event} (const $ pure v) Just
+    Focus v      => inst "focus" {t = Event} (const $ pure v) Just
+    MouseDown f  => inst "mousedown" mouseInfo f
+    MouseUp f    => inst "mouseup" mouseInfo f
+    MouseEnter f => inst "mouseenter" mouseInfo f
+    MouseLeave f => inst "mouseleave" mouseInfo f
+    MouseOver f  => inst "mouseover" mouseInfo f
+    MouseOut f   => inst "mouseout" mouseInfo f
+    MouseMove f  => inst "mousemove" mouseInfo f
+    HashChange v => inst "hashchange" {t = Event} (const $ pure v) Just
 
-      addEventListener el s (Just c)
+    where
+      inst :
+           {0 t,b : _}
+        -> {auto c : SafeCast t}
+        -> String
+        -> (t -> JSIO b)
+        -> (b -> Maybe e)
+        -> JSIO ()
+      inst {t} s conv f = do
+        c <- callback {cb = EventListener} $ \e => do
+          va <- tryCast_ t "Control.Monad.Dom.Interface.inst" e
+          conv va >>= maybe (pure ()) handle . f
 
-parameters {0    e : Type}
-           (handle : Handler e)
+        addEventListener el s (Just c)
 
   ||| Manually register an event handler at the given element
   export
   handleEvent : Ref t -> DOMEvent e -> JSIO ()
-  handleEvent ref de = do
-    el  <- castElementByRef ref
-    registerDOMEvent handle el de
+  handleEvent r de = do
+    el  <- castElementByRef r
+    registerDOMEvent el de
 
   export
   setAttribute : Element -> Attribute t e -> JSIO ()
@@ -88,29 +96,17 @@ parameters {0    e : Type}
   setAttribute el (Bool name value) = case value of
     True  => setAttribute el name ""
     False => removeAttribute el name
-  setAttribute el (Event ev) = registerDOMEvent handle (up el) ev
+  setAttribute el (Event ev) = registerDOMEvent (up el) ev
 
-  export
-  setAttributeRef : Ref t -> Attribute t e -> JSIO ()
-  setAttributeRef ref a = do
-    el <- castElementByRef ref
-    setAttribute el a
-
-  export
-  setAttributesRef : Ref t -> List (Attribute t e) -> JSIO ()
-  setAttributesRef el = traverseList_ (setAttributeRef el)
 
 --------------------------------------------------------------------------------
 --          Node Preparation
 --------------------------------------------------------------------------------
 
-parameters {0    e : Type}      -- event type
-           (handle : Handler e) -- event handler
-
   createNode : Document -> String -> List (Attribute t e) -> JSIO Element
   createNode doc str xs = do
     el <- createElement doc str
-    traverseList_ (setAttribute handle el) xs
+    traverseList_ (setAttribute el) xs
     pure el
 
   addNodes :
@@ -145,138 +141,204 @@ parameters {0    e : Type}      -- event type
 
   addNodes doc p = assert_total $ traverseList_ (addNode doc p)
 
-  setupNodes :
-       (Element -> DocumentFragment -> JSIO ())
-    -> Ref t
-    -> List (Node e)
-    -> JSIO ()
-  setupNodes adj ref ns = do
-    doc  <- document
-    elem <- castElementByRef {t = Element} ref
-    df   <- createDocumentFragment doc
-    addNodes doc df ns
-    adj elem df
+public export
+record DOMUpdate (e : Type) where
+  constructor D
+  run : Handler e => JSIO ()
 
-  %inline
-  setupNode :
-       (Element -> DocumentFragment -> JSIO ())
-    -> Ref t
-    -> Node e
-    -> JSIO ()
-  setupNode adj ref n = setupNodes adj ref [n]
+export %inline
+noAction : DOMUpdate e
+noAction = D (pure ())
 
-  ||| Sets up the reactive behavior of the given `Node`s and
-  ||| inserts them as the children of the given target.
-  export %inline
-  innerHtmlAtN : Ref t -> List (Node e) -> JSIO ()
-  innerHtmlAtN = setupNodes replaceChildren
+setupNodes :
+     (Element -> DocumentFragment -> JSIO ())
+  -> Ref t
+  -> List (Node e)
+  -> DOMUpdate e
+setupNodes adj r ns = D $ do
+  doc  <- document
+  elem <- castElementByRef {t = Element} r
+  df   <- createDocumentFragment doc
+  addNodes doc df ns
+  adj elem df
 
-  ||| Sets up the reactive behavior of the given `Node` and
-  ||| inserts it as the only child of the given target.
-  export %inline
-  innerHtmlAt : Ref t -> Node e -> JSIO ()
-  innerHtmlAt = setupNode replaceChildren
+%inline
+setupNode :
+     (Element -> DocumentFragment -> JSIO ())
+  -> Ref t
+  -> Node e
+  -> DOMUpdate e
+setupNode adj r n = setupNodes adj r [n]
 
-  ||| Sets up the reactive behavior of the given `Node`s and
-  ||| inserts them after the given child node.
-  export %inline
-  afterN : Ref t -> List (Node e) -> JSIO ()
-  afterN = setupNodes afterDF
+||| Execute several DOM update instructions
+export %inline
+updateDOM : Handler e => List (DOMUpdate e) -> JSIO ()
+updateDOM = traverseList_ (\x => x.run)
 
-  ||| Sets up the reactive behavior of the given `Node` and
-  ||| inserts it after the given child node.
-  export %inline
-  after : Ref t -> Node e -> JSIO ()
-  after = setupNode afterDF
+||| Sets up the reactive behavior of the given `Node`s and
+||| inserts them as the children of the given target.
+export %inline
+children : Ref t -> List (Node e) -> DOMUpdate e
+children = setupNodes replaceChildren
 
-  ||| Sets up the reactive behavior of the given `Node`s and
-  ||| inserts them before the given child node.
-  export %inline
-  beforeN : Ref t -> List (Node e) -> JSIO ()
-  beforeN = setupNodes beforeDF
+||| Sets up the reactive behavior of the given `Node` and
+||| inserts it as the only child of the given target.
+export %inline
+child : Ref t -> Node e -> DOMUpdate e
+child = setupNode replaceChildren
 
-  ||| Sets up the reactive behavior of the given `Node` and
-  ||| inserts it before the given child node.
-  export %inline
-  before : Ref t -> Node e -> JSIO ()
-  before = setupNode beforeDF
+||| Replaces the given node's children with a text node
+||| displaying the given string.
+export %inline
+text : Ref t -> String -> DOMUpdate e
+text r = child r . Text
 
-  ||| Sets up the reactive behavior of the given `Node`s and
-  ||| appends them to the given element's list of children
-  export %inline
-  appendN : Ref t -> List (Node e) -> JSIO ()
-  appendN = setupNodes appendDF
+||| Replaces the given node's children with a text node
+||| showing the given value.
+export %inline
+show : Show b => Ref t -> b -> DOMUpdate e
+show r = text r . show
 
-  ||| Sets up the reactive behavior of the given `Node` and
-  ||| appends it to the given element's list of children
-  export %inline
-  append : Ref t -> Node e -> JSIO ()
-  append = setupNode appendDF
+||| Replaces the given node's children with the raw
+||| HTML passed as a string argument.
+export %inline
+raw : Ref t -> String -> DOMUpdate e
+raw r = child r . Raw
 
-  ||| Sets up the reactive behavior of the given `Node`s and
-  ||| prepends them to the given element's list of children
-  export %inline
-  prependN : Ref t -> List (Node e) -> JSIO ()
-  prependN = setupNodes prependDF
+||| Replaces the given `<style>` node's CSS rules.
+export
+style : Ref Tag.Style -> List (Rule 1) -> DOMUpdate e
+style r rules =
+  let str := fastUnlines $ map interpolate rules
+   in raw r str
 
-  ||| Sets up the reactive behavior of the given `Node` and
-  ||| prepends it to the given element's list of children
-  export %inline
-  prepend : Ref t -> Node e -> JSIO ()
-  prepend = setupNode prependDF
+||| Sets up the reactive behavior of the given `Node`s and
+||| inserts them after the given child node.
+export %inline
+afterMany : Ref t -> List (Node e) -> DOMUpdate e
+afterMany = setupNodes afterDF
 
-  ||| Sets up the reactive behavior of the given `Node`s and
-  ||| replaces the given element.
-  export %inline
-  replaceN : Ref t -> List (Node e) -> JSIO ()
-  replaceN = setupNodes replaceDF
+||| Sets up the reactive behavior of the given `Node` and
+||| inserts it after the given child node.
+export %inline
+after : Ref t -> Node e -> DOMUpdate e
+after = setupNode afterDF
 
-  ||| Sets up the reactive behavior of the given `Node` and
-  ||| replaces the given element.
-  export %inline
-  replace : Ref t -> Node e -> JSIO ()
-  replace = setupNode replaceDF
+||| Sets up the reactive behavior of the given `Node`s and
+||| inserts them before the given child node.
+export %inline
+beforeMany : Ref t -> List (Node e) -> DOMUpdate e
+beforeMany = setupNodes beforeDF
 
-  ||| Execute a single DOM update instruction
-  export
-  updateDOM1 : DOMUpdate e -> JSIO ()
-  updateDOM1 (Render x s)      = render x s
-  updateDOM1 (Children x ns)   = innerHtmlAtN x ns
-  updateDOM1 (Replace x ns)    = replaceN x ns
-  updateDOM1 (Append x ns)     = appendN x ns
-  updateDOM1 (Prepend x ns)    = prependN x ns
-  updateDOM1 (After x ns)      = afterN x ns
-  updateDOM1 (Before x ns)     = beforeN x ns
-  updateDOM1 (Attr x a)        = setAttributeRef handle x a
-  updateDOM1 (Value x a)       = setValue x a
-  updateDOM1 (ValidityMsg x a) = setValidityMessage x a
-  updateDOM1 (Remove x)        = castElementByRef {t = Element} x >>= remove
-  updateDOM1 NoAction          = pure ()
+||| Sets up the reactive behavior of the given `Node` and
+||| inserts it before the given child node.
+export %inline
+before : Ref t -> Node e -> DOMUpdate e
+before = setupNode beforeDF
 
-  ||| Execute several DOM update instructions
-  export %inline
-  updateDOM : List (DOMUpdate e) -> JSIO ()
-  updateDOM = traverseList_ updateDOM1
+||| Sets up the reactive behavior of the given `Node`s and
+||| appends them to the given element's list of children
+export %inline
+appendMany : Ref t -> List (Node e) -> DOMUpdate e
+appendMany = setupNodes appendDF
+
+||| Sets up the reactive behavior of the given `Node` and
+||| appends it to the given element's list of children
+export %inline
+append : Ref t -> Node e -> DOMUpdate e
+append = setupNode appendDF
+
+||| Sets up the reactive behavior of the given `Node`s and
+||| prepends them to the given element's list of children
+export %inline
+prependMany : Ref t -> List (Node e) -> DOMUpdate e
+prependMany = setupNodes prependDF
+
+||| Sets up the reactive behavior of the given `Node` and
+||| prepends it to the given element's list of children
+export %inline
+prepend : Ref t -> Node e -> DOMUpdate e
+prepend = setupNode prependDF
+
+||| Sets up the reactive behavior of the given `Node`s and
+||| replaces the given element.
+export %inline
+replaceMany : Ref t -> List (Node e) -> DOMUpdate e
+replaceMany = setupNodes replaceDF
+
+||| Sets up the reactive behavior of the given `Node` and
+||| replaces the given element.
+export %inline
+replace : Ref t -> Node e -> DOMUpdate e
+replace = setupNode replaceDF
+
+||| Sets a custom validity message at the given node.
+export %inline
+validityMsg : Ref t -> ValidityTag t => String -> DOMUpdate e
+validityMsg r s = D $ setValidityMessage r s
+
+||| Sets or unsets a custom validity message at the given node.
+export
+validate : Ref t -> ValidityTag t => Either String b -> DOMUpdate e
+validate r (Left s)  = validityMsg r s
+validate r (Right s) = validityMsg r ""
+
+||| Sets an attribute at the given node.
+export
+attr : Ref t -> Attribute t e -> DOMUpdate e
+attr r a = D $ castElementByRef r >>= \el => setAttribute el a
+
+||| Sets the `disabled` attribute of the given element
+export %inline
+disabled : Ref t -> Bool -> DOMUpdate e
+disabled r = attr r . disabled
+
+||| Sets the `disabled` attribute of the given element
+||| if the given values is a `Left`.
+|||
+||| This is useful for disabling components such as buttons
+||| in the UI in case of invalid user input.
+export %inline
+disabledE : {0 a,b : _} -> Ref t -> Either a b -> DOMUpdate e
+disabledE r = disabled r . isLeft
+
+||| Sets the `disabled` attribute of the given element
+||| if the given values is a `Nothing`.
+|||
+||| This is useful for disabling components such as buttons
+||| in the UI in case of invalid user input.
+export %inline
+disabledM : {0 a : _} -> Ref t -> Maybe a -> DOMUpdate e
+disabledM r = disabled r . isNothing
+
+||| Removes the given element from the DOM.
+export
+remove : Ref t -> DOMUpdate e
+remove r = D (castElementByRef {t = Element} r >>= remove)
+
+||| Sets the `value` attribute of the given element.
+export %inline
+value : Ref t -> ValueTag t => String -> DOMUpdate e
+value r s = D (setValue r s)
+
+||| Renders a scene at a canvas element
+export %inline
+render : Ref Tag.Canvas -> Scene -> DOMUpdate e
+render r s = D (render r s)
+
+export
+updateIf : Bool -> Lazy (DOMUpdate e) -> DOMUpdate e
+updateIf True  u = u
+updateIf False _ = noAction
 
 export
 runDOM :
-     (adjST   : e -> s -> s)
-  -> (display : e -> s -> List (DOMUpdate e))
-  -> (handler : Handler e)
-  -> (event   : e)
-  -> (state   : s)
-  -> JSIO s
-runDOM adjST display handler event state =
-  let st2 := adjST event state
-   in updateDOM handler (display event st2) $> st2
-
-export %inline
-injectDOM :
-     {auto has : Has e es}
+     {auto h : Handler e}
   -> (adjST   : e -> s -> s)
   -> (display : e -> s -> List (DOMUpdate e))
-  -> (handler : SHandler es)
   -> (event   : e)
   -> (state   : s)
   -> JSIO s
-injectDOM f g h = runDOM f g (h . inject)
+runDOM adjST display event state =
+  let st2 := adjST event state
+   in updateDOM (display event st2) $> st2

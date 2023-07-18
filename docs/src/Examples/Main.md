@@ -41,7 +41,7 @@ library: To properly deal with the uncertainties of the
 JavaScript language, the core IO type we use most of the time
 is `JSIO`, which is an alias for `EitherT JSErr IO`, where
 `JSErr` is an error type defined also in idris2-js.
-Function `runJS` breaks out of the `Either` monad, by logging
+Function `runJS` breaks out of the `Either` monad by logging
 all errors to the console. This might not be the best solution for a
 real-world application, as the console logs in the browser
 will not be inspected by the average user, but it will do

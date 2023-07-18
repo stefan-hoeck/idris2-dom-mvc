@@ -140,16 +140,16 @@ displayEv : FractEv -> DOMUpdate FractEv
 displayEv FractInit  = child exampleDiv content
 displayEv (Iter x)   = validate txtIter x
 displayEv (Redraw x) = validate txtRedraw x
-displayEv Run        = NoAction
-displayEv (Inc m)    = NoAction
+displayEv Run        = noAction
+displayEv (Inc m)    = noAction
 
 display : FractEv -> FractST -> List (DOMUpdate FractEv)
 display e s = displayEv e :: displayST s
 
 export
-runFract : Has FractEv es => SHandler es -> FractEv -> FractST -> JSIO FractST
-runFract h FractInit s = do
-  s2   <- injectDOM adjST display h FractInit s
-  stop <- animate (h . inject . Inc)
+runFract : Handler FractEv => Controller FractST FractEv
+runFract FractInit s = do
+  s2   <- runDOM adjST display FractInit s
+  stop <- animate (handle . Inc)
   pure $ {cleanUp := stop} s2
-runFract h e s = injectDOM adjST display h e s
+runFract e s = runDOM adjST display e s

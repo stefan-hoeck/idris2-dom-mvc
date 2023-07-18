@@ -52,7 +52,8 @@ Some stuff from external libraries is also imported:
 
 ## Writing HTML in Idris2
 
-Module `Text.HTML` and its submodules provide a small DSL for
+Module `Text.HTML` and its submodules provide a small
+domain-specific language (DSL) for
 declaring HTML nodes and their attributes. These are pure
 Idris data types and can be used to write and render
 properly formatted HTML on any backend.
@@ -239,16 +240,16 @@ are going to need access to an event handler, so we pass this via
 a `parameters` block:
 
 ```idris
-parameters (h : Handler SelectEv)
+parameters {auto h : Handler SelectEv}
 
   runApp : Controller ST (HSum Events)
   runApp =
     controlMany
-      [ modifyA ballsL . runBalls h
-      , modifyA fractL . runFract h
-      , modifyA perfL  . runPerf  h
-      , modifyA resetL . runReset h
-      , modifyA mathL  . runMath  h
+      [ modifyA ballsL . runBalls @{inject h}
+      , modifyA fractL . runFract @{inject h}
+      , modifyA perfL  . runPerf  @{inject h}
+      , modifyA resetL . runReset @{inject h}
+      , modifyA mathL  . runMath  @{inject h}
       ]
 ```
 
@@ -266,7 +267,7 @@ applications are properly removed:
   cleanup : ST -> JSIO ST
   cleanup s = do
     liftIO (s.balls.cleanUp >> s.fract.cleanUp)
-    updateDOM (h . inject) [style appStyle rules, child contentDiv content]
+    updateDOM @{inject h} [style appStyle rules, child contentDiv content]
     pure init
 ```
 

@@ -32,7 +32,6 @@ modules    = Text.CSS
 
            , Web.MVC
            , Web.MVC.Animate
-           , Web.MVC.DOMUpdate
            , Web.MVC.Output
            , Web.MVC.Event
            , Web.MVC.Reactimate

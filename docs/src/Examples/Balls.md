@@ -289,26 +289,26 @@ adjST (Next m)  s = case s.count of
 displayST : BallsST -> List (DOMUpdate BallsEv)
 displayST s =
   [ disabledM btnRun s.numBalls
-  , Render out (ballsToScene s.balls)
+  , render out (ballsToScene s.balls)
   , updateIf (s.count == 0) (text log $ showFPS s.dtime)
   ]
 
 displayEv : BallsEv -> DOMUpdate BallsEv
 displayEv BallsInit = child exampleDiv content
-displayEv Run       = NoAction
+displayEv Run       = noAction
 displayEv (NumIn x) = validate txtCount x
-displayEv (Next m)  = NoAction
+displayEv (Next m)  = noAction
 
 display : BallsEv -> BallsST -> List (DOMUpdate BallsEv)
 display e s = displayEv e :: displayST s
 
 export
-runBalls : Has BallsEv es => SHandler es -> BallsEv -> BallsST -> JSIO BallsST
-runBalls h BallsInit s = do
-  s2   <- injectDOM adjST display h BallsInit s
-  stop <- animate (h . inject . Next)
+runBalls : Handler BallsEv => Controller BallsST BallsEv
+runBalls BallsInit s = do
+  s2   <- runDOM adjST display BallsInit s
+  stop <- animate (handle . Next)
   pure $ {cleanUp := stop} s2
-runBalls h e s = injectDOM adjST display h e s
+runBalls e s = runDOM adjST display e s
 ```
 
 We now only need to write the controllers for reading user

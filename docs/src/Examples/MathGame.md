@@ -333,24 +333,24 @@ displayST s =
   , disabledM resultIn $ currentCalc s
   , text calc $ maybe "" dispCalc (currentCalc s)
   , text out $ maybe "" (reply s.lang) s.result
-  , Attr pic $ style "background-image : url('\{s.pic}');"
-  , Attr out $ style (fromMaybe "" $ s.result >>= style)
-  , Render pic (dispState s)
+  , attr pic $ style "background-image : url('\{s.pic}');"
+  , attr out $ style (fromMaybe "" $ s.result >>= style)
+  , render pic (dispState s)
   ]
 
 displayEv : MathEv -> DOMUpdate MathEv
 displayEv (Lang x) = child exampleDiv (content x)
-displayEv Check    = Value resultIn ""
+displayEv Check    = value resultIn ""
 displayEv MathInit = child exampleDiv (content init.lang)
-displayEv (Inp _)  = NoAction
+displayEv (Inp _)  = noAction
 
 display : MathEv -> MathST -> List (DOMUpdate MathEv)
 display e s = displayEv e :: displayST s
 
 export
-runMath : Has MathEv es => SHandler es -> MathEv -> MathST -> JSIO MathST
-runMath h MathInit s = randomGame s.lang >>= injectDOM adjST display h MathInit
-runMath h e    s = injectDOM adjST display h e s
+runMath : Handler MathEv => Controller MathST MathEv
+runMath MathInit s = randomGame s.lang >>= runDOM adjST display MathInit
+runMath e    s = runDOM adjST display e s
 ```
 
 For checking answers entered by users, we need a stream function

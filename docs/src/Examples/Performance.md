@@ -30,7 +30,6 @@ module Examples.Performance
 
 import Data.DPair
 import Data.Either
-import Data.List.Quantifiers.Extra
 import Data.List.TR
 import Data.Nat
 import Data.String
@@ -200,17 +199,17 @@ displayEv : PerfEv -> PerfST -> DOMUpdate PerfEv
 displayEv PerfInit       _ = child exampleDiv content
 displayEv (NumChanged e) _ = validate natIn e
 displayEv (Set k)        _ = disabled (btnRef k) True
-displayEv Reload         s = maybe NoAction (child buttons . btns) s.num
+displayEv Reload         s = maybe noAction (child buttons . btns) s.num
 
 display : PerfEv -> PerfST -> List (DOMUpdate PerfEv)
 display e s = displayEv e s :: displayST s
 
 export
-runPerf : Has PerfEv es => SHandler es -> PerfEv -> PerfST -> JSIO PerfST
-runPerf h e s = do
-  (s2,dt) <- timed (injectDOM adjST display h e s)
+runPerf : Handler PerfEv => Controller PerfST PerfEv
+runPerf e s = do
+  (s2,dt) <- timed (runDOM adjST display e s)
   case (e,s2.num) of
-    (Reload,Just n) => updateDOM h [text time $ dispTime n dt]
+    (Reload,Just n) => updateDOM {e = PerfEv} [text time $ dispTime n dt]
     _               => pure ()
   pure s2
 ```

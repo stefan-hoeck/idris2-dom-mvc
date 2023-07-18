@@ -15,7 +15,7 @@ and display the actual count. In addition, we do not want users
 to increase or decrease the counter too much, so the corresponding
 buttons should be disabled if values are getting too large or too small.
 Resetting the state makes no sense when the counter is at zero,
-so the *reset* button should be disabled in that case as well.
+so the *reset* button should be disabled in that case.
 
 
 ```idris
@@ -31,8 +31,10 @@ import Web.MVC
 ## Model
 
 Our model is still too primitive to require a custom
-data type. Since the button clicks update an integer value,
-our event type will be a function on integers:
+data type: We just use an `Int8` for the current number.
+The event type is not much more complex: We define an
+event for initializing the UI, and one for updating
+the model:
 
 ```idris
 public export
@@ -54,12 +56,11 @@ There are four of them: The buttons for increasing and decreasing
 the counter, which will be disabled if the value gets to
 small or too big, the reset button, which will be disabled
 if the counter is at zero, and the div element where we will output
-the current count. Again, these have been put to
-external module `Examples.CSS.Reset`, because they are
-also needed for the CSS rules, and these would
-just unnecessarily clutter the code here. Still,
-if this is all new to you, make sure to have a quick
-look before you continue.
+the current count. Again, the corresponding `Ref t`s
+have been put to external module `Examples.CSS.Reset`, because they are
+also needed for the CSS rules.
+If this is all new to you, make sure to have a quick
+look at how they are defined before you continue.
 
 The DOM elements will be laid out as a list of
 four lines, each with a descriptive label at the
@@ -92,17 +93,21 @@ content =
 
 ## Controller
 
-The actual controlling MSF is a simple state accumulator, the
-output of which will be broadcast to the different dynamic
-elements. We use the `fan_` combinator to broadcast
-some input to several data sinks (a *sink* is a monadic stream function
-that produces no output of interest):
+We typically define three pure functions for controlling the
+application: First, one for adjusting the application state
+according to the current event.
 
 ```idris
 adjST : ResetEv -> Int8 -> Int8
 adjST ResetInit n = 0
 adjST (Mod f) n = f n
+```
 
+Second, one for displaying the current state. This lists
+the necessary updates to the DOM, that are required on
+almost every event:
+
+```idris
 displayST : Int8 -> List (DOMUpdate ResetEv)
 displayST n =
   [ disabled btnDec   (n <= -10)
@@ -110,73 +115,35 @@ displayST n =
   , disabled btnReset (n == 0)
   , show out n
   ]
+```
 
+Third, one for updating the DOM based on the current event.
+This includes updates that may take some time to run or
+may interrupt user input, so we only want them to occur
+on specific occasions. Here, we completely redraw the app
+on the initializing event:
+
+```idris
 display : ResetEv -> Int8 -> List (DOMUpdate ResetEv)
 display ResetInit n = child exampleDiv content :: displayST n
 display (Mod f)   n = displayST n
+```
 
+All the `DOMUpdate` actions used above are defined in module
+`Web.MVC.Reactimate`. It is pretty straight forward to define your
+own `DOMUpdate` in case some functionality is missing.
+A `DOMUpdate e` is a wrapper around `Handler e => JSIO ()`, which
+allows us to implement updates to the DOM which register new
+event handlers.
+
+Finally, we define the application controller by just passing
+functions `adjST` and `display` to utility `Web.MVC.Reactimate.runDOM`.
+
+```idris
 export
 runReset : Handler ResetEv => Controller Int8 ResetEv
 runReset = runDOM adjST display
 ```
-
-In the code above, `(>>>)` is sequencing of stream functions
-`(f ^>> g)` is an alias for `arr f >>> g`, that allows us to use pure
-functions in a sequence of
-computations directly, and `accumulateWith` is one of the looping
-combinators defined for monadic stream functions. The implementation
-of these combinators is pretty simple, so I suggest you have a look
-at the code and tutorials in the *rhone* library to get a better understanding
-of what's going on under the hood. The data sinks `text` and `disabled`
-are defined in module `Rhone.JS.Sink`. They merely use `arrM` to
-lift the corresponding effectful computations from the idris2-dom
-library to the MSF context.
-
-Finally, we put everything together in a single effectful
-computation: Setting up the HTML
-content, registering all necessary event listeners,
-and returning the stream function.
-
-Note that the function above returns a pair of values: The
-value of type `JSIO ()` is a cleanup hook invoked if
-this application should be stopped. We return a dummy here:
-Every sample application will clear the content of `exampleDiv`,
-and we didn't setup any additional resources.
-
-## Some Background: Running Monadic Stream Functions
-
-We will now have a closer look at how the machinery in the background
-operates. The first piece of functionality for understanding what's going
-on comes in form of function `Data.MSF.Running.step`: This is a single step
-evaluation function for MSFs: An MSF is passed an input value, and the result
-will be an effectful computation of an output value together with
-a new MSF, which will be used in the next evaluation step.
-
-All of this is set up by invoking one of the `reactimateXY` functions
-from `Data.MSF.Running`. Go ahead and have a look at their implementations:
-I tried to properly annotate the code to make it easier to understand
-what's going on: An event handler is being setup and registered at all
-active components (this happens, when `innerHtmlAt` is executed), which
-will read the current `MSF` (holding the current application state!)
-from a mutable variable
-and evaluate it using `Data.MSF.Running.step`, whenever an event is fired.
-The resulting continuation is then written back to the mutable
-variable.
-
-When you look again at the [selector implementation](Selector.md), you
-will see that the MSF we defined there will invoke `reactimateIni`
-on our `ui` function whenever the user selected the `"reset"` application.
-
-Why the call to `reactimateIni`? When you have a closer look at
-the structure of `content` above, you will note that the initial output
-field shows no text, and the *reset* button is enabled (the `disabled`
-attribute has not been set explicitly). This is not what we want: The current
-application state (the value 0) should be correctly shown and the
-*reset* button disabled accordingly. We could set these things up
-manually in `content`, but that would be a repetition of application
-logic. It's often better to setup everything by invoking the `MSF`
-once with an *initialization event*. Then everything will behave
-correctly from the very beginning.
 
 <!-- vi: filetype=idris2:syntax=markdown
 -->

@@ -335,8 +335,8 @@ the web page - and thus the virtual DOM - consists of
 many elements.
 
 So far, dom-mvc does not use a virtual DOM but uses both
-the current event and updated state to determine, which parts of
-the DOM should be modified when and how.
+the current event and updated state to determine the parts of
+the DOM that need modification.
 
 ## Whats next?
 

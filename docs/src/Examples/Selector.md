@@ -153,10 +153,10 @@ The core function used for this (which is used in our application's
 
 ```haskell
 runMVC :
-     {0 e,s : Type}
-  -> (initEv  : e)
-  -> (initST  : s)
-  -> (modST   : Handler e -> Controller s e)
+     {0 e,s  : Type}
+  -> (initEv : e)
+  -> (initST : s)
+  -> (ctrl   : Handler e => Controller s e)
   -> JSIO ()
 ```
 
@@ -172,41 +172,46 @@ The state type in `runMVC` is represented by parameter `s`, and `initST`
 is the initial application state.
 
 Finally, we need a way to update and display the state when an event
-occurs, and this is what function `modST` does. Now, this is the
+occurs, and this is what function `ctrl` does. Now, this is the
 most complex argument, so we need to talk about it in some detail.
-The first argument of `modST` is of type `Handler e`, which is an
-alias for `e -> JSIO ()`. So `modST` is given a function for handling
+The first argument of `ctrl` is of type `Handler e`, which is an
+wrapper around `e -> JSIO ()`. So `ctrl` is given a function for handling
 events, which it can use to register event listeners at the user interface.
 As we will see, we don't typically register event handlers manually,
 as the utilities we invoke do this for us. However, they need access
-to an event handler to do so, and that's what the first argument of `modST`
+to an event handler to do so, and that's what the first argument of `ctrl`
 is used for.
 
 The result type `Controller s e` is an alias for `e -> s -> JSIO s`,
-so `modST` actually takes two more arguments.
+so `ctrl` actually takes two more arguments.
 These are the current event and application state, respectively,
-and the result is a new application state plus
-some side effects for updating the user interface.
+and the result is the updated application state plus
+some side effects for updating the user interface in accordance
+with the fired event and new application state.
 
 As we will see, we often use pure functions together with some
-existing utilities for `modST`, which will tremendously simplify
+existing utilities for `ctrl`, which will tremendously simplify
 our code. Still, for the main application, we are going to need
-the components described above, so let's define them.
+the components described above.
 
-First, the event type. Our main application consists of a selection
+First, we define the event type. Our main application consists of a selection
 of several unrelated example apps, each with its own state and
 event type. We collect all event types plus our own `AppEv` in
-a heterogeneous sum, and use this as the main event type of our
-application:
+a heterogeneous sum, and use this as the main event type of the
+whole application:
 
 ```idris
+||| We don't include `AppEv` here, because we need this list in
+||| the type of `runApp` below.
 public export
 0 Events : List Type
 Events = [BallsEv, FractEv, PerfEv, ResetEv, MathEv]
 
+||| The full event type includes `AppEv` at the head, so we
+||| can split it of with a simple pattern match (see `ui`).
 public export
-0 SelectEv : Type
-SelectEv = HSum (AppEv :: Events)
+0 FullEv : Type
+FullEv = HSum (AppEv :: Events)
 ```
 
 Likewise, we use a record type listing the states of the different
@@ -234,13 +239,13 @@ init = S init 0 init init init
 
 We can now implement the main application controller. In order to
 distinguish between the events coming from each application,
-we use a heterogeneous list holding on controller for each event type.
+we use a heterogeneous list holding one controller for each event type.
 Function `Web.MVC.controlMany` is useful for this. All controllers
-are going to need access to an event handler, so we pass this via
+are going to need access to the main event handler, so we pass it via
 a `parameters` block:
 
 ```idris
-parameters {auto h : Handler SelectEv}
+parameters {auto h : Handler FullEv}
 
   runApp : Controller ST (HSum Events)
   runApp =
@@ -253,11 +258,11 @@ parameters {auto h : Handler SelectEv}
       ]
 ```
 
-Function `runApp` only handles the events from example applications,
+Function `runApp` only handles the events from example applications
 but not the `AppEv` event from the main `<select>` element. We handle
 that one in two functions: First, when we change the example application,
-we have to cleanup some stuff first (some applications use animations,
-and we'd like to stop those before starting a new app). Cleanup
+we have to cleanup some stuff first: Some applications use animations,
+and we'd like to stop those before starting a new app. Cleanup
 hooks are stored in the corresponding application states.
 
 We also reset the main view, to make sure all traces from previous
@@ -271,8 +276,8 @@ applications are properly removed:
     pure init
 ```
 
-In a second step: We select, which application to start by pattern
-matching on the `AppEv` event fired from the `<select>` element:
+In a second step, we choose the example app to start by pattern
+matching on the `AppEv` event fired by the `<select>` element:
 
 ```idris
   changeApp : Controller ST AppEv
@@ -291,9 +296,10 @@ by function `main`, we just pattern match on the event we get. If it's
 an `AppEv` signalling that the user wants to try a different example
 app, we cleanup and switch applications. If it's coming from a running
 application, however, we just pass it on to `runApp`.
+
 ```idris
   export
-  ui : Controller ST SelectEv
+  ui : Controller ST FullEv
   ui (Here x)  s = cleanup s >>= changeApp x
   ui (There x) s = runApp x s
 ```

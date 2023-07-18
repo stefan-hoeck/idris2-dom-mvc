@@ -29,20 +29,28 @@ export
 controlMany : All (Controller s) es -> Controller s (HSum es)
 controlMany cs evs s = collapse' $ hzipWith (\f,e => f e s) cs evs
 
+||| Runs (a part of) an interactive web page firing events of type
+||| `e` and holding state of type `s`.
+|||
+||| The controller is used for updating and displaying the new
+||| application state upon an event, an effectful computation that
+||| might include the registering of new events in the UI, for
+||| which the controller requires and auto implicit argument of
+||| type `Handler e`.
 export covering
 runMVC :
      {0 e,s  : Type}
   -> (initEv : e)
   -> (initST : s)
-  -> (modST  : Handler e => Controller s e)
+  -> (ctrl   : Handler e => Controller s e)
   -> JSIO ()
-runMVC initEv initST modST = do
+runMVC initEv initST ctrl = do
   ref <- newIORef initST
 
   let covering handler : Handler e
       handler = H $ \ev => do
         stOld <- readIORef ref
-        stNew <- modST @{handler} ev stOld
+        stNew <- ctrl @{handler} ev stOld
         writeIORef ref stNew
 
   handler.handle_ initEv

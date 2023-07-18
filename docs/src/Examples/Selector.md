@@ -1,7 +1,7 @@
-# The Basic Layout of a rhone-js Web Page
+# The Basic Layout of a dom-mvc Web Page
 
 This module defines the HTML structure of the main page and
-implements the functionality of the `select` element that is
+implements the functionality of the `<select>` element that is
 used to choose and load one of the example applications.
 
 First some imports:
@@ -10,6 +10,7 @@ First some imports:
 module Examples.Selector
 
 import Derive.Lens
+import Derive.Finite
 import Examples.CSS
 import Monocle
 
@@ -26,50 +27,75 @@ import public Web.MVC
 ```
 
 This imports all example applications plus module `Examples.CSS`, where
-most of the CSS rules for the page are defined. In addition, `Rhone.JS`
+most of the CSS rules for the page are defined. In addition, `Web.MVC`
 is imported, the kitchen sink re-exporting the core functionality necessary
-to write a rhone-js wep application.
+to write a single page web application.
 
-## ~~The Effect Type: `MonadDom`~~
+Some stuff from external libraries is also imported:
 
-This library used to have its own effect type called `MonadDom`. However, it
-turned out that this made the whole thing unnecessarily complex with adding
-any benefit. Nowadays, we can just use plain `JSIO`.
+* `Monocle`: From the [idris2-monocle](https://github.com/stefan-hoeck/idris2-monocle)
+   library, an optics library for derivable setters and getters for deeply
+   nested data structures. We use it to effectfully update the fields
+   of our main application state.
+* `Derive.Lens`: Also from the monocle library, this allows us to derive
+  lenses for the record type we use as the main application state.
+* `Derive.Finite`: This is from the
+  [idris2-finite](https://github.com/stefan-hoeck/idris2-finite)
+  library, which allows us to derive and enumerate all values of a type with
+  a finite number of inhabitants.
+* `Data.List.Quatifiers.Extra`:
+  This is from the
+  [idris2-quantifiers-extra](https://github.com/stefan-hoeck/idris2-quantifiers-extra)
+  library, providing some additional functionality for working with heterogeneous
+  lists and sums. We use a heterogeneous sum to collect the events our
+  different example applications fire.
 
 ## Writing HTML in Idris2
 
-Module `Text.Html` and its submodules provide a small DSL for
+Module `Text.HTML` and its submodules provide a small DSL for
 declaring HTML nodes and their attributes. These are pure
 Idris data types and can be used to write and render
 properly formatted HTML on any backend.
 
-Here is the layout of the main page:
+In order to write an interactive web page, we first need to define
+the type of events it fires. The `<select>` element at the top of the
+page is used to select one of several example applications. We list
+the possible values in an enumeration and provide a function for
+converting the string inputs from the user interface to the
+correct event value:
 
 ```idris
 public export
-data App = Reset | Perf | Balls | Fract | Math
+data AppEv = Reset | Perf | Balls | Fract | Math
 
-toApp : String -> App
-toApp "perf"  = Perf
-toApp "balls" = Balls
-toApp "fract" = Fract
-toApp "math"  = Math
-toApp _       = Reset
+%runElab derive "AppEv" [Show,Eq,Finite]
 
-content : Node App
+toApp : String -> AppEv
+toApp s = fromMaybe Reset $ find ((s ==) . show) values
+```
+
+Here is the layout of the main page:
+
+```idris
+appName : AppEv -> String
+appName Reset = "Counting Clicks"
+appName Perf  = "Performance"
+appName Balls = "Bouncing Balls"
+appName Fract = "Fractals"
+appName Math  = "Math Game"
+
+opt : AppEv -> Node AppEv
+opt v = option [value (show v), selected (v==Reset)] [Text $ appName v]
+
+content : Node AppEv
 content =
   div [ class contentList ]
       [ div [class pageTitle] ["dom-mvc: Examples"]
       , div [class contentHeader]
           [ label [class widgetLabel] ["Choose an Example"]
           , select
-              [ classes [widget, selectIn, exampleSelector], onChange toApp]
-              [ option [ value "reset", selected True ] ["Counting Clicks"]
-              , option [ value "performance" ] ["Performance"]
-              , option [ value "fractals" ] ["Fractals"]
-              , option [ value "balls" ] ["Bouncing Balls"]
-              , option [ value "math" ] ["Math Game"]
-              ]
+              [classes [widget, selectIn, exampleSelector], onChange toApp]
+              (map opt values)
           ]
       , div [Id exampleDiv] []
       ]
@@ -77,22 +103,35 @@ content =
 
 A typical `Node` constructor like `div` or `label` takes
 two arguments: A list of attributes and a list of child
-nodes.
+nodes. We use these to describe the tree structure of a HTML page.
+This works very well, as the code is typically quite readable, while
+we still have the power of Idris at hand: The options of the select
+element come from applying function `opt` to all `AppEv` values.
+(Function `values` comes from interface `Data.Finite.Finite` from the
+finite library.)
 
 Several things need some quick explanation: CSS classes like
 `pageTitle` or `contentHeader` are just `String`s defined in
 module `Examples.CSS` together with the corresponding CSS rules.
-(If you are new to web development: [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+(If you are new to web development:
+[CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
 is a domain specific
 language used to describe the presentation of documents written
 in HTML and similar markup languages. It is used to define the
 appearance of the example web page.)
+In this example application I show how to define CSS rules in Idris
+using the data types and functions from `Text.CSS` and its submodules.
+If you prefer to use plain `.css` files instead (as I do nowadays),
+that's perfectly fine as well.
 
-DOM identifiers like `exampleDiv` are of type `ElementRef t` (defined
-in `Rhone.JS.ElemRef`), where `t` is the type of the
-corresponding HTML element. They are mainly typed wrappers around ID
-strings and are used to lookup HTML elements in the DOM.
-We need these, whenever an element in the DOM is not static.
+DOM identifiers like `exampleDiv` are of type `Ref t` (defined
+in `Text.HTML.Ref`), where `t` is a tag of type `Text.HTML.Tag.HTMLTag`
+corresponding to the HTML element's tag. They are mainly typed wrappers
+around ID strings and are used to lookup HTML elements in the DOM.
+Tag `t` gives us some additional guarantees, both when building
+a `Node` (the element and ID tag must match), but also when looking
+up elements in the DOM, or when we need to restrict the allowed
+elements in a function.
 In the example above, `exampleDiv` points to the DOM element
 where the content of the example applications will go. It's the
 only part of the main web page that is not static.
@@ -100,62 +139,82 @@ only part of the main web page that is not static.
 Finally, we also encode the events an element fires in the `Node`
 type, and that's what `Node`'s parameter stands for. Events are
 just attributes, and in the example above, the `select` element
-fires an event whenever the user changes the selected value
-(`onChange id`).
+fires an `AppEv` event whenever the user changes the selected value
+(`onChange toApp`).
 
-## The Interactive Part: Monadic Stream Functions
+## The Interactive Part: Handling Events
 
 Now that we have the structure of our web page specified, we
 can have a quick look at how we define its interactive behavior.
 
-rhone-js is named after [idris2-rhone](https://github.com/stefan-hoeck/idris2-rhone)
-a port of monadic stream functions (MSF) first introduced
-in Haskell's [dunai](https://hackage.haskell.org/package/dunai)
-library and explained in detail in a nice
-[article](https://www.cs.nott.ac.uk/~psxip1/#FRPRefactored).
-This is probably the most accessible implementation of (arrowized)
-functional reactive programming I have so far come across.
-
-In its most general form, an MSF can be thought of
-as having the following type:
+The core function used for this (which is used in our application's
+`main` function) is `Web.MVC.runMVC`. Here's its type
 
 ```haskell
-data MSF m i o = MSF (i -> m (o, MSF m i o))
+runMVC :
+     {0 e,s : Type}
+  -> (initEv  : e)
+  -> (initST  : s)
+  -> (modST   : Handler e -> Controller s e)
+  -> JSIO ()
 ```
 
-This is an effectful computation over a monad type `m` converting
-an input value of type `i` to an output value of type `o` plus
-a new MSF (the original MSF's continuation), which will be used
-to convert the next piece of input.
+We are going to describe the different parts in detail: An interactive
+web application fires and handles events from user input. In the type
+above, `e` is the event type, and `initEv` is the initial event
+we fire when starting the application.
 
-In the *rhone* library, we don't use this most general form,
-as it does not go well with the totality checker. Instead,
-our implementation of `MSF` encodes a rather large set
-of primitive operations in the data type itself. This gives
-us the benefit of provably total stream functions, which is
-extremely valuable especially when we start using advanced
-components like event switches.
+Non-trivial web pages are stateful: An event modifies the application
+state (for instance, by increasing a counter when a button is clicked)
+and the new state is used to update what we see in the user interface.
+The state type in `runMVC` is represented by parameter `s`, and `initST`
+is the initial application state.
 
-`MSF` implements interfaces `Functor` and `Applicative` but also
-`Category` and `Arrow`. It lets us lift any effectful function
-into an `MSF` value via function `arrM` (used in the code below),
-supports feedback loops for stateful computations and several
-kinds of event switches to dynamically change the behavior
-of a web page. The ability to lift arbitrary effectful computations
-is especially useful, as it allows us to update the DOM
-directly from within an MSF.
+Finally, we need a way to update and display the state when an event
+occurs, and this is what function `modST` does. Now, this is the
+most complex argument, so we need to talk about it in some detail.
+The first argument of `modST` is of type `Handler e`, which is an
+alias for `e -> JSIO ()`. So `modST` is given a function for handling
+events, which it can use to register event listeners at the user interface.
+As we will see, we don't typically register event handlers manually,
+as the utilities we invoke do this for us. However, they need access
+to an event handler to do so, and that's what the first argument of `modST`
+is used for.
 
-Enough talk, here's the code:
+The result type `Controller s e` is an alias for `e -> s -> JSIO s`,
+so `modST` actually takes two more arguments.
+These are the current event and application state, respectively,
+and the result is a new application state plus
+some side effects for updating the user interface.
+
+As we will see, we often use pure functions together with some
+existing utilities for `modST`, which will tremendously simplify
+our code. Still, for the main application, we are going to need
+the components described above, so let's define them.
+
+First, the event type. Our main application consists of a selection
+of several unrelated example apps, each with its own state and
+event type. We collect all event types plus our own `AppEv` in
+a heterogeneous sum, and use this as the main event type of our
+application:
 
 ```idris
 public export
 0 Events : List Type
-Events = [App, BallsEv, FractEv, PerfEv, ResetEv, MathEv]
+Events = [BallsEv, FractEv, PerfEv, ResetEv, MathEv]
 
 public export
 0 SelectEv : Type
-SelectEv = HSum Events
+SelectEv = HSum (AppEv :: Events)
+```
 
+Likewise, we use a record type listing the states of the different
+applications in its fields. We are going to use the lenses from
+monocle to modify a single application state, depending on the
+input being fired. We also define the initial application state,
+which just lists the initial state of each example application.
+
+```idris
 public export
 record ST where
   constructor S
@@ -170,65 +229,73 @@ record ST where
 export
 init : ST
 init = S init 0 init init init
-
-0 Controller : Type -> Type
-Controller e = e -> ST -> JSIO ST
-
-runSelect : Handler SelectEv -> App -> JSIO ST
-runSelect h Perf  = modifyA perfL  (runPerf h Init) init
-runSelect h Balls = modifyA ballsL (runBalls h Init) init
-runSelect h Fract = modifyA fractL (runFract h Init) init
-runSelect h Math  = modifyA mathL  (runMath h Init) init
-runSelect h Reset = do
-  updateDOM (h . inject)
-    [ style appStyle allRules , child contentDiv content ]
-  modifyA resetL (runReset h Init) init
-
-cleanup : ST -> JSIO ()
-cleanup s = liftIO (s.balls.cleanUp >> s.fract.cleanUp)
-
-controllers : (SelectEv -> JSIO ()) -> All Controller Events
-controllers h =
-  [ \e,s => cleanup s >> runSelect h e
-  , modifyA ballsL . runBalls h
-  , modifyA fractL . runFract h
-  , modifyA perfL  . runPerf h
-  , modifyA resetL . runReset h
-  , modifyA mathL  . runMath h
-  ]
-
-export
-ui : (SelectEv -> JSIO ()) -> SelectEv -> ST -> JSIO ST
-ui h es s = collapse' $ hzipWith (\f,e => f e s) (controllers h) es
 ```
 
-I'll quickly break this down a bit: The first line
-renders and applies the page's CSS rules to a `<style>`
-element in the HTML header referenced by `ElementRef`
-`appStyle`. The second line,
-`innerHtmlAt contentDiv content`, is where half of the magic
-happens: We change the inner HTML of the element with ID
-`"content"` (the string wrapped up in `contentDiv`) to the
-result of rendering `content` (the HTML `Node` we defined above).
-At the same time, event listeners are attached to all interactive
-elements of our web page.
+We can now implement the main application controller. In order to
+distinguish between the events coming from each application,
+we use a heterogeneous list holding on controller for each event type.
+Function `Web.MVC.controlMany` is useful for this. All controllers
+are going to need access to an event handler, so we pass this via
+a `parameters` block:
 
-Afterwards, the monadic stream function is created: We
-use `arrM` to lift an effectful computation to the MSF context.
-This is just a pattern match on our event type (`String`), which consists
-of the values fired by the select element. If the value is one we
-know about, we start the corresponding user interface, again
-by invoking the mysterious `reactimateInDom` function. This
-is where the other half of the magic happens, but that's for
-another post.
+```idris
+parameters (h : Handler SelectEv)
 
-Just a final note: `reactimate` and `reactimateIni`
-might set up resources (for instance running timers) we need to cleanup
-once we switch to another example application.
-The `feedback` loop takes care of this:
-After a new example has been started, its cleanup hook is
-sent back to the input of the controlling MSF and invoked
-before the next application is started.
+  runApp : Controller ST (HSum Events)
+  runApp =
+    controlMany
+      [ modifyA ballsL . runBalls h
+      , modifyA fractL . runFract h
+      , modifyA perfL  . runPerf  h
+      , modifyA resetL . runReset h
+      , modifyA mathL  . runMath  h
+      ]
+```
+
+Function `runApp` only handles the events from example applications,
+but not the `AppEv` event from the main `<select>` element. We handle
+that one in two functions: First, when we change the example application,
+we have to cleanup some stuff first (some applications use animations,
+and we'd like to stop those before starting a new app). Cleanup
+hooks are stored in the corresponding application states.
+
+We also reset the main view, to make sure all traces from previous
+applications are properly removed:
+
+```idris
+  cleanup : ST -> JSIO ST
+  cleanup s = do
+    liftIO (s.balls.cleanUp >> s.fract.cleanUp)
+    updateDOM (h . inject) [style appStyle rules, child contentDiv content]
+    pure init
+```
+
+In a second step: We select, which application to start by pattern
+matching on the `AppEv` event fired from the `<select>` element:
+
+```idris
+  changeApp : Controller ST AppEv
+  changeApp Perf  = runApp (inject PerfInit)
+  changeApp Balls = runApp (inject BallsInit)
+  changeApp Fract = runApp (inject FractInit)
+  changeApp Math  = runApp (inject MathInit)
+  changeApp Reset = runApp (inject ResetInit)
+```
+
+As we will see when we look at each of the example applications, every
+one of them sets up its own HTML nodes upon receiving its `Init` event.
+
+To sum it all up, and to define function `ui`, which is directly invoked
+by function `main`, we just pattern match on the event we get. If it's
+an `AppEv` signalling that the user wants to try a different example
+app, we cleanup and switch applications. If it's coming from a running
+application, however, we just pass it on to `runApp`.
+```idris
+  export
+  ui : Controller ST SelectEv
+  ui (Here x)  s = cleanup s >>= changeApp x
+  ui (There x) s = runApp x s
+```
 
 ## Comparison with other MVC Libraries
 
@@ -246,10 +313,13 @@ for instance the one used by the *Elm* programming language,
 make use of a *virtual DOM*. This is an in-memory model of
 the real DOM used by the browser, and this is the *view*
 that is being manipulated in Elm applications. On each
-update, the virtual DOM is compared to its previous state
+event, the model (state) is updated based on the current event,
+the view (virtual DOM) is updated to display the new state, and
+the virtual DOM is compared to its previous version
 (a process called *DOM diffing*) and the real DOM is updated
 to reflect the changes made to the virtual DOM. The advantage of this
-approach is that we can write a single (pure!) function for converting
+approach is that we can often write pretty simple and pure functions
+for updating the model and converting
 the model to the view and never have to interact with
 the real DOM explicitly. The downside is, that we loose some
 control over which parts of the web page are updated when,
@@ -257,11 +327,9 @@ which can have an impact on performance, especially when
 the web page - and thus the virtual DOM - consists of
 many elements.
 
-So far, rhone-js does not use a virtual DOM but interacts with
-the real DOM directly through a network of monadic stream
-functions. Whether this will result in a nice way to write web applications
-or will lead to unmaintainable tangles of code, only time
-and experience will tell.
+So far, dom-mvc does not use a virtual DOM but uses both
+the current event and updated state to determine, which parts of
+the DOM should be modified when and how.
 
 ## Whats next?
 

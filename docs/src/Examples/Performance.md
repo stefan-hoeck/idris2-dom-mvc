@@ -64,7 +64,7 @@ PosNat = Subset Nat IsSucc
 
 public export
 data PerfEv : Type where
-  Init       : PerfEv
+  PerfInit   : PerfEv
   NumChanged : Either String PosNat -> PerfEv
   Reload     : PerfEv
   Set        : Nat -> PerfEv
@@ -188,7 +188,7 @@ convenient to use.
 
 ```idris
 adjST : PerfEv -> PerfST -> PerfST
-adjST Init           = const init
+adjST PerfInit       = const init
 adjST (NumChanged e) = {num := eitherToMaybe e}
 adjST Reload         = {sum := 0}
 adjST (Set k)        = {sum $= (+k)}
@@ -197,7 +197,7 @@ displayST : PerfST -> List (DOMUpdate PerfEv)
 displayST s = [disabledM btnRun s.num, show out s.sum]
 
 displayEv : PerfEv -> PerfST -> DOMUpdate PerfEv
-displayEv Init           _ = child exampleDiv content
+displayEv PerfInit       _ = child exampleDiv content
 displayEv (NumChanged e) _ = validate natIn e
 displayEv (Set k)        _ = disabled (btnRef k) True
 displayEv Reload         s = maybe NoAction (child buttons . btns) s.num

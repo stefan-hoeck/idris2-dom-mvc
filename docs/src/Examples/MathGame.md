@@ -44,10 +44,10 @@ data Language = EN | DE
 
 public export
 data MathEv : Type where
-  Lang  : Language -> MathEv
-  Check : MathEv
-  Init  : MathEv
-  Inp   : String -> MathEv
+  Lang     : Language -> MathEv
+  Check    : MathEv
+  MathInit : MathEv
+  Inp      : String -> MathEv
 
 lang : String -> MathEv
 lang "de" = Lang DE
@@ -214,7 +214,7 @@ content l =
              ] [Text $ checkAnswerStr l]
 
     , button [ Id newBtn
-             , onClick Init
+             , onClick MathInit
              , classes [widget,btn]
              ] [Text $ newGameStr l]
 
@@ -324,7 +324,7 @@ the input text field:
 adjST : MathEv -> MathST -> MathST
 adjST (Lang x) = {lang := x}
 adjST Check    = checkAnswer
-adjST Init     = id
+adjST MathInit = id
 adjST (Inp s)  = {answer := s}
 
 displayST : MathST -> List (DOMUpdate MathEv)
@@ -341,7 +341,7 @@ displayST s =
 displayEv : MathEv -> DOMUpdate MathEv
 displayEv (Lang x) = child exampleDiv (content x)
 displayEv Check    = Value resultIn ""
-displayEv Init     = child exampleDiv (content init.lang)
+displayEv MathInit = child exampleDiv (content init.lang)
 displayEv (Inp _)  = NoAction
 
 display : MathEv -> MathST -> List (DOMUpdate MathEv)
@@ -349,7 +349,7 @@ display e s = displayEv e :: displayST s
 
 export
 runMath : Has MathEv es => SHandler es -> MathEv -> MathST -> JSIO MathST
-runMath h Init s = randomGame s.lang >>= injectDOM adjST display h Init
+runMath h MathInit s = randomGame s.lang >>= injectDOM adjST display h MathInit
 runMath h e    s = injectDOM adjST display h e s
 ```
 

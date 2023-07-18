@@ -150,8 +150,8 @@ milliseconds.
 ```idris
 public export
 data BallsEv : Type where
-  Init  : BallsEv
-  Run   : BallsEv
+  BallsInit  : BallsEv
+  Run        : BallsEv
   NumIn : Either String Nat -> BallsEv
   Next  : DTime -> BallsEv
 
@@ -279,7 +279,7 @@ showFPS n =
    in "FPS: \{show val}"
 
 adjST : BallsEv -> BallsST -> BallsST
-adjST Init      _ = init
+adjST BallsInit _ = init
 adjST Run       s = {balls := maybe s.balls initialBalls s.numBalls} s
 adjST (NumIn x) s = {numBalls := eitherToMaybe x} s
 adjST (Next m)  s = case s.count of
@@ -294,7 +294,7 @@ displayST s =
   ]
 
 displayEv : BallsEv -> DOMUpdate BallsEv
-displayEv Init      = child exampleDiv content
+displayEv BallsInit = child exampleDiv content
 displayEv Run       = NoAction
 displayEv (NumIn x) = validate txtCount x
 displayEv (Next m)  = NoAction
@@ -304,8 +304,8 @@ display e s = displayEv e :: displayST s
 
 export
 runBalls : Has BallsEv es => SHandler es -> BallsEv -> BallsST -> JSIO BallsST
-runBalls h Init s = do
-  s2   <- injectDOM adjST display h Init s
+runBalls h BallsInit s = do
+  s2   <- injectDOM adjST display h BallsInit s
   stop <- animate (h . inject . Next)
   pure $ {cleanUp := stop} s2
 runBalls h e s = injectDOM adjST display h e s

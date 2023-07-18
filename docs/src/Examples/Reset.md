@@ -38,8 +38,8 @@ our event type will be a function on integers:
 ```idris
 public export
 data ResetEv : Type where
-  Init : ResetEv
-  Mod  : (Int8 -> Int8) -> ResetEv
+  ResetInit : ResetEv
+  Mod       : (Int8 -> Int8) -> ResetEv
 ```
 
 ## View
@@ -101,7 +101,7 @@ that produces no output of interest):
 
 ```idris
 adjST : ResetEv -> Int8 -> Int8
-adjST Init    n = 0
+adjST ResetInit n = 0
 adjST (Mod f) n = f n
 
 displayST : Int8 -> List (DOMUpdate ResetEv)
@@ -113,8 +113,8 @@ displayST n =
   ]
 
 display : ResetEv -> Int8 -> List (DOMUpdate ResetEv)
-display Init    n = child exampleDiv content :: displayST n
-display (Mod f) n = displayST n
+display ResetInit n = child exampleDiv content :: displayST n
+display (Mod f)   n = displayST n
 
 export
 runReset : Has ResetEv es => SHandler es -> ResetEv -> Int8 -> JSIO Int8

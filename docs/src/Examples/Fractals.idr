@@ -54,11 +54,11 @@ readDelay =
 
 public export
 data FractEv : Type where
-  Init   : FractEv
-  Iter   : Either String Iterations -> FractEv
-  Redraw : Either String RedrawDelay -> FractEv
-  Run    : FractEv
-  Inc    : DTime -> FractEv
+  FractInit : FractEv
+  Iter      : Either String Iterations -> FractEv
+  Redraw    : Either String RedrawDelay -> FractEv
+  Run       : FractEv
+  Inc       : DTime -> FractEv
 
 public export
 record FractST where
@@ -108,7 +108,7 @@ rotate []     = []
 rotate (h::t) = t ++ [h]
 
 adjST : FractEv -> FractST -> FractST
-adjST Init       s = init
+adjST FractInit  s = init
 adjST (Iter x)   s = {itersIn  := eitherToMaybe x} s
 adjST (Redraw x) s = {redrawIn := eitherToMaybe x} s
 adjST (Inc dt)   s =
@@ -137,7 +137,7 @@ displayST s =
   ]
 
 displayEv : FractEv -> DOMUpdate FractEv
-displayEv Init       = child exampleDiv content
+displayEv FractInit  = child exampleDiv content
 displayEv (Iter x)   = validate txtIter x
 displayEv (Redraw x) = validate txtRedraw x
 displayEv Run        = NoAction
@@ -148,8 +148,8 @@ display e s = displayEv e :: displayST s
 
 export
 runFract : Has FractEv es => SHandler es -> FractEv -> FractST -> JSIO FractST
-runFract h Init s = do
-  s2   <- injectDOM adjST display h Init s
+runFract h FractInit s = do
+  s2   <- injectDOM adjST display h FractInit s
   stop <- animate (h . inject . Inc)
   pure $ {cleanUp := stop} s2
 runFract h e s = injectDOM adjST display h e s

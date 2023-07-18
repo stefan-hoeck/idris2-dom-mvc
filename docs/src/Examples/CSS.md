@@ -43,8 +43,8 @@ be found in the corresponding submodules).
 
 ```idris
 export
-allRules : List (Rule 1)
-allRules =
+rules : List (Rule 1)
+rules =
      coreCSS
   ++ Balls.css
   ++ Fractals.css

@@ -3,8 +3,9 @@ version    = 0.0.1
 authors    = "Stefan Höck"
 depends    = dom-mvc
            , contrib
-           , rio
+           , finite
            , monocle
+           , rio
 
 opts       = "--codegen javascript"
 

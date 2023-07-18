@@ -4,7 +4,6 @@ import Control.Monad.Either.Extra
 import JS
 import Web.Html
 import Web.MVC.Canvas.Angle
-import Web.MVC.ElemRef
 
 %default total
 

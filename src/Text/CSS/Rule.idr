@@ -3,6 +3,7 @@ module Text.CSS.Rule
 import Data.String
 import Text.CSS.Declaration
 import Text.CSS.Selector
+import Text.HTML.Ref
 import Text.HTML.Tag
 
 %default total
@@ -42,6 +43,11 @@ id = sel . id
 export %inline
 star : List Declaration -> Rule n
 star = sel Star
+
+||| Uses an element ref as an ID selector
+export %inline
+ref : {0 t : HTMLTag s} -> Ref t -> List Declaration -> Rule n
+ref (Id i) = id i
 
 export
 Interpolation (Rule n) where

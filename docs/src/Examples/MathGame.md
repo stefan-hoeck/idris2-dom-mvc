@@ -179,32 +179,32 @@ content l =
   div [ class mathContent ]
     [ lbl "\{language l}:" lblLang
     , select
-        [ ref langIn, classes [widget, selectIn], onChange Lang]
+        [ Id langIn, classes [widget, selectIn], onChange Lang]
         [ option [ value "de", selected (l == DE)] [Text $ german l]
         , option [ value "en", selected (l == EN)] [Text $ english l]
         ]
 
-    , div [ ref calc ] []
+    , div [ Id calc ] []
 
-    , input [ ref resultIn
+    , input [ Id resultIn
             , onEnterDown Check
             , class widget
             , placeholder (resultStr l)
             ] []
 
-    , button [ ref checkBtn
+    , button [ Id checkBtn
              , onClick Check
              , classes [widget,btn]
              ] [Text $ checkAnswerStr l]
 
-    , button [ ref newBtn
+    , button [ Id newBtn
              , onClick NewGame
              , classes [widget,btn]
              ] [Text $ newGameStr l]
 
-    , div [ ref out ] []
+    , div [ Id out ] []
 
-    , canvas [ ref pic, width wcanvas, height wcanvas ] []
+    , canvas [ Id pic, width wcanvas, height wcanvas ] []
     ]
 ```
 

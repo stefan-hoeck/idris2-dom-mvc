@@ -5,7 +5,7 @@ import Data.Vect
 import Examples.CSS.Colors
 import public Examples.CSS.Core
 import Text.CSS
-import Web.MVC.ElemRef
+import Text.HTML
 
 --------------------------------------------------------------------------------
 --          IDs
@@ -13,39 +13,39 @@ import Web.MVC.ElemRef
 
 ||| Where the message about the correct result
 ||| is printed to.
-public export
-out : ElemRef
-out = Id Div "mathgame_out"
+export
+out : Ref Div
+out = Id "mathgame_out"
 
 ||| Select box where users choose the language.
-public export
-langIn : ElemRef
-langIn = Id Select "mathgame_language"
+export
+langIn : Ref Select
+langIn = Id "mathgame_language"
 
 ||| Text field where users enter their result.
-public export
-resultIn : ElemRef
-resultIn = Id Input "mathgame_input"
+export
+resultIn : Ref Tag.Input
+resultIn = Id "mathgame_input"
 
 ||| Button to check the entered result
-public export
-checkBtn : ElemRef
-checkBtn = Id Button "mathgame_check_btn"
+export
+checkBtn : Ref Tag.Button
+checkBtn = Id "mathgame_check_btn"
 
 ||| Button to start a new game
-public export
-newBtn : ElemRef
-newBtn = Id Button "mathgame_newbtn"
+export
+newBtn : Ref Tag.Button
+newBtn = Id "mathgame_newbtn"
 
 ||| ID of the picture canvas
-public export
-pic : ElemRef
-pic = Id Canvas "mathgame_pic"
+export
+pic : Ref Canvas
+pic = Id "mathgame_pic"
 
 ||| ID of the calculation label
-public export
-calc : ElemRef
-calc = Id Div "mathgame_calc"
+export
+calc : Ref Div
+calc = Id "mathgame_calc"
 
 --------------------------------------------------------------------------------
 --          CSS
@@ -125,35 +125,35 @@ css =
 
   , class lblLang [ gridArea LLan ]
 
-  , idRef langIn
+  , ref langIn
       [ gridArea        ILan
       , fontSize        Large
       , textAlign       End
       ]
 
-  , idRef calc
+  , ref calc
       [ gridArea        OClc
       , fontSize        Large
       , textAlign       Start
       ]
 
-  , idRef resultIn
+  , ref resultIn
       [ gridArea        IRes
       , fontSize        Large
       , textAlign       End
       ]
 
-  , idRef checkBtn  [ gridArea BChk ]
+  , ref checkBtn  [ gridArea BChk ]
 
-  , idRef newBtn  [ gridArea BNew ]
+  , ref newBtn  [ gridArea BNew ]
 
-  , idRef out
+  , ref out
       [ gridArea        ORep
       , fontSize        Large
       , textAlign       Start
       ]
 
-  , idRef pic
+  , ref pic
       [ backgroundSize  $ perc 100
       , justifySelf     Center
       , gridArea        OPic

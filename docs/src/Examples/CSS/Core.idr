@@ -2,7 +2,7 @@ module Examples.CSS.Core
 
 import Examples.CSS.Colors
 import Text.CSS
-import Web.MVC.ElemRef
+import Text.HTML
 
 --------------------------------------------------------------------------------
 --          IDs
@@ -10,9 +10,9 @@ import Web.MVC.ElemRef
 
 ||| ID of the `<body>` element. The page content will
 ||| be placed here.
-public export
-contentDiv : ElemRef
-contentDiv = Id Body "content"
+export
+contentDiv : Ref Tag.Body
+contentDiv = Id "content"
 
 ||| The page consists of a static heading with a title an
 ||| (eventually) a short description of the project.
@@ -21,67 +21,67 @@ contentDiv = Id Body "content"
 |||
 ||| The example application will be dynamicall generated and
 ||| placed in to a `<div>` with ID `"example"`.
-public export
-exampleDiv : ElemRef
-exampleDiv = Id Div "example"
+export
+exampleDiv : Ref Div
+exampleDiv = Id "example"
 
 ||| ID of a `<style>` element in the page header.
 ||| The generated CSS rules will go here.
-public export
-appStyle : ElemRef
-appStyle = Id Style "appstyle"
+export
+appStyle : Ref Style
+appStyle = Id "appstyle"
 
 --------------------------------------------------------------------------------
 --          Classes
 --------------------------------------------------------------------------------
 
 ||| a clickable button
-public export
+export
 btn : String
 btn = "btn"
 
 ||| a text input
-public export
+export
 textIn : String
 textIn = "textin"
 
 ||| a select input
-public export
+export
 selectIn : String
 selectIn = "selectin"
 
 ||| an input widget
-public export
+export
 widget : String
 widget = "widget"
 
 ||| the main content, split into three rows:
 ||| a title, the example selector, and the
 ||| currently loaded example application
-public export
+export
 contentList : String
 contentList = "contentList"
 
 ||| the header row where the example selector
 ||| resides
-public export
+export
 contentHeader : String
 contentHeader = "contentHeader"
 
 ||| the row with the page title
-public export
+export
 pageTitle : String
 pageTitle = "pageTitle"
 
 ||| the select box used to choose an example
 ||| application
-public export
+export
 exampleSelector : String
 exampleSelector = "example_selector"
 
 ||| a label on the left of an input
 ||| widget.
-public export
+export
 widgetLabel : String
 widgetLabel = "widgetlabel"
 

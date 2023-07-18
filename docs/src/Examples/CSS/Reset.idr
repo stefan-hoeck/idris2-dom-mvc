@@ -5,31 +5,31 @@ import Data.Vect
 import Examples.CSS.Colors
 import public Examples.CSS.Core
 import Text.CSS
-import Web.MVC.ElemRef
+import Text.HTML
 
 --------------------------------------------------------------------------------
 --          IDs
 --------------------------------------------------------------------------------
 
 ||| Where the accumulated count is printed to
-public export
-out : ElemRef
-out = Id Div "reset_out"
+export
+out : Ref Div
+out = Id "reset_out"
 
 ||| ID of the increasing button
-public export
-btnInc : ElemRef
-btnInc = Id Button "reset_inc"
+export
+btnInc : Ref Tag.Button
+btnInc = Id "reset_inc"
 
 ||| ID of the decreasing button
-public export
-btnDec : ElemRef
-btnDec = Id Button "reset_dec"
+export
+btnDec : Ref Tag.Button
+btnDec = Id "reset_dec"
 
 ||| ID of the reset button
-public export
-btnReset : ElemRef
-btnReset = Id Button "reset_reset"
+export
+btnReset : Ref Tag.Button
+btnReset = Id "reset_reset"
 
 --------------------------------------------------------------------------------
 --          CSS
@@ -91,19 +91,19 @@ css =
 
   , class resetLbl  [ gridArea LRes ]
 
-  , idRef btnReset  [ gridArea BRes ]
+  , ref btnReset  [ gridArea BRes ]
 
   , class incLbl    [ gridArea LInc ]
 
-  , idRef btnInc    [ gridArea BInc ]
+  , ref btnInc    [ gridArea BInc ]
 
   , class decLbl    [ gridArea LDec ]
 
-  , idRef btnDec    [ gridArea BDec ]
+  , ref btnDec    [ gridArea BDec ]
 
   , class countLbl  [ gridArea LCnt ]
 
-  , idRef out
+  , ref out
       [ fontSize        Large
       , gridArea        OCnt
       , textAlign       End

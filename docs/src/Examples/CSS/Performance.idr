@@ -4,35 +4,35 @@ import Data.Vect
 import Examples.CSS.Colors
 import public Examples.CSS.Core
 import Text.CSS
-import Web.MVC.ElemRef
+import Text.HTML
 
 --------------------------------------------------------------------------------
 --          IDs
 --------------------------------------------------------------------------------
 
 -- displays the current sum of clicks
-public export
-out : ElemRef
-out = Id Div "performance_sum"
+export
+out : Ref Div
+out = Id "performance_sum"
 
 -- text fields where users can enter the number of buttons
-public export
-natIn : ElemRef
-natIn = Id Input "performance_numbuttons"
+export
+natIn : Ref Tag.Input
+natIn = Id "performance_numbuttons"
 
-public export
-btnRun : ElemRef
-btnRun = Id Button "performance_run"
+export
+btnRun : Ref Tag.Button
+btnRun = Id "performance_run"
 
 -- where the created buttons go
-public export
-buttons : ElemRef
-buttons = Id Div "performance_buttons"
+export
+buttons : Ref Div
+buttons = Id "performance_buttons"
 
 -- displays the time take to create the buttons
-public export
-time : ElemRef
-time = Id Div "performance_time"
+export
+time : Ref Div
+time = Id "performance_time"
 
 --------------------------------------------------------------------------------
 --          Classes
@@ -111,23 +111,23 @@ css =
 
   , class numButtonsLbl [ gridArea LBtn ]
 
-  , idRef natIn
+  , ref natIn
       [ gridArea        NBtn
       , textAlign       End
       ]
 
-  , idRef btnRun [ gridArea BRun ]
+  , ref btnRun [ gridArea BRun ]
 
   , class sumLbl [ gridArea LSum ]
 
-  , idRef out
+  , ref out
       [ gridArea        OSum
       , fontSize        Large
       ]
 
-  , idRef time  [ gridArea OTme ]
+  , ref time  [ gridArea OTme ]
 
-  , idRef buttons
+  , ref buttons
       [ gridArea        Btns
       , borderStyle     $ Left Solid
       , borderWidth     $ Left (px 2)

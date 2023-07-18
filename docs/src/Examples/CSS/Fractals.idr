@@ -4,27 +4,27 @@ import Data.Vect
 import Examples.CSS.Colors
 import public Examples.CSS.Core
 import Text.CSS
-import Web.MVC.ElemRef
+import Text.HTML
 
 --------------------------------------------------------------------------------
 --          IDs
 --------------------------------------------------------------------------------
 
-public export
-out : ElemRef
-out = Id Div "fractals_out"
+export
+out : Ref Div
+out = Id "fractals_out"
 
-public export
-btnRun : ElemRef
-btnRun = Id Button "fractals_run"
+export
+btnRun : Ref Tag.Button
+btnRun = Id "fractals_run"
 
-public export
-txtIter : ElemRef
-txtIter = Id Input "fractals_iterations"
+export
+txtIter : Ref Tag.Input
+txtIter = Id "fractals_iterations"
 
-public export
-txtRedraw : ElemRef
-txtRedraw = Id Input "fractals_redrawdelay"
+export
+txtRedraw : Ref Tag.Input
+txtRedraw = Id "fractals_redrawdelay"
 
 --------------------------------------------------------------------------------
 --          Classes
@@ -95,21 +95,21 @@ css =
       ]
   , class lblIter [ gridArea LIter ]
 
-  , idRef txtIter
+  , ref txtIter
       [ gridArea        IIter
       , textAlign       End
       ]
 
   , class lblDelay [ gridArea LDel ]
 
-  , idRef txtRedraw
+  , ref txtRedraw
       [ gridArea        IDel
       , textAlign       End
       ]
 
-  , idRef btnRun [ gridArea BRun ]
+  , ref btnRun [ gridArea BRun ]
 
-  , idRef out
+  , ref out
       [ justifySelf     Center
       , gridArea        Fract
       , borderStyle     $ Left Solid

@@ -3,29 +3,28 @@ module Examples.CSS.Balls
 import Data.Vect
 import Examples.CSS.Colors
 import Text.CSS
-import Text.HTML.Tag
-import Web.MVC.ElemRef
+import Text.HTML
 import public Examples.CSS.Core
 
 --------------------------------------------------------------------------------
 --          IDs
 --------------------------------------------------------------------------------
 
-public export
-out : ElemRef
-out = Id Canvas "balls_out"
+export
+out : Ref Canvas
+out = Id "balls_out"
 
-public export
-btnRun : ElemRef
-btnRun = Id Button "balls_run"
+export
+btnRun : Ref Tag.Button
+btnRun = Id "balls_run"
 
-public export
-txtCount : ElemRef
-txtCount = Id Input "balls_numballs"
+export
+txtCount : Ref Tag.Input
+txtCount = Id "balls_numballs"
 
-public export
-log : ElemRef
-log = Id Div "balls_log"
+export
+log : Ref Div
+log = Id "balls_log"
 
 --------------------------------------------------------------------------------
 --          Rules
@@ -88,16 +87,16 @@ css =
 
   , class lblCount [ gridArea LNum ]
 
-  , idRef txtCount
+  , ref txtCount
       [ gridArea        INum
       , textAlign       End
       ]
 
-  , idRef btnRun [ gridArea BRun ]
+  , ref btnRun [ gridArea BRun ]
 
-  , idRef log [ gridArea LFPS ]
+  , ref log [ gridArea LFPS ]
 
-  , idRef out
+  , ref out
       [ justifySelf     Center
       , gridArea        Anim
       , maxWidth        $ px 500

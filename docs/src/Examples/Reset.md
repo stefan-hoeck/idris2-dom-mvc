@@ -73,14 +73,8 @@ text and need to know about the event they fire
 when they are being clicked:
 
 ```idris
-btn :
-     (r : ElemRef)
-  -> {auto 0 _ : ById r}
-  -> (Int8 -> Int8)
-  -> (lbl: String)
-  -> Node ResetEv
-btn r ev lbl =
-  button [ref r, onClick (Mod ev), classes [widget,btn]] [Text lbl]
+btn : Ref Tag.Button -> (Int8 -> Int8) -> String -> Node ResetEv
+btn r ev l = button [Id r, onClick (Mod ev), classes [widget,btn]] [Text l]
 ```
 
 Finally, we can put the components together and define
@@ -93,7 +87,7 @@ content =
       [ lbl "Reset counter:"    resetLbl, btn btnReset (const 0) "Reset"
       , lbl "Increase counter:" incLbl,   btn btnInc   (+ 1)     "+"
       , lbl "Decrease counter:" decLbl,   btn btnDec   (+ (-1))  "-"
-      , lbl "Count:"            countLbl, div [ref out] []
+      , lbl "Count:"            countLbl, div [Id out] []
       ]
 ```
 

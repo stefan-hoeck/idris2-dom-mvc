@@ -3,14 +3,17 @@ module Text.HTML.Node
 import Data.String
 import Text.HTML.Attribute
 import Text.HTML.Event
+import Text.HTML.Ref
+import Text.HTML.Tag
 
 %default total
 
 public export
 data Node : (event : Type) -> Type where
-  El    :  {0 ev : Type}
-        -> (tag : String)
-        -> List (Attribute ev)
+  El    :  {0 ev  : Type}
+        -> {tag   : String}
+        -> (0 tpe : HTMLTag tag)
+        -> List (Attribute tpe ev)
         -> List (Node ev)
         -> Node ev
 
@@ -25,316 +28,316 @@ FromString (Node ev) where
   fromString = Text
 
 export %inline
-a : List (Attribute ev) -> List (Node ev) -> Node ev
-a = El "a"
+a : List (Attribute A ev) -> List (Node ev) -> Node ev
+a = El _
 
 export %inline
-address : List (Attribute ev) -> List (Node ev) -> Node ev
-address = El "address"
+address : List (Attribute Address ev) -> List (Node ev) -> Node ev
+address = El _
 
 export %inline
-area : List (Attribute ev) -> List (Node ev) -> Node ev
-area = El "area"
+area : List (Attribute Area ev) -> List (Node ev) -> Node ev
+area = El _
 
 export %inline
-article : List (Attribute ev) -> List (Node ev) -> Node ev
-article = El "article"
+article : List (Attribute Article ev) -> List (Node ev) -> Node ev
+article = El _
 
 export %inline
-audio : List (Attribute ev) -> List (Node ev) -> Node ev
-audio = El "audio"
+audio : List (Attribute Audio ev) -> List (Node ev) -> Node ev
+audio = El _
 
 export %inline
-base : List (Attribute ev) -> List (Node ev) -> Node ev
-base = El "base"
+base : List (Attribute Base ev) -> List (Node ev) -> Node ev
+base = El _
 
 export %inline
-blockquote : List (Attribute ev) -> List (Node ev) -> Node ev
-blockquote = El "blockquote"
+blockquote : List (Attribute Blockquote ev) -> List (Node ev) -> Node ev
+blockquote = El _
 
 export %inline
-body : List (Attribute ev) -> List (Node ev) -> Node ev
-body = El "body"
+body : List (Attribute Tag.Body ev) -> List (Node ev) -> Node ev
+body = El _
 
 export %inline
-br : List (Attribute ev) -> List (Node ev) -> Node ev
-br = El "br"
+br : List (Attribute Br ev) -> List (Node ev) -> Node ev
+br = El _
 
 export %inline
-button : List (Attribute ev) -> List (Node ev) -> Node ev
-button = El "button"
+button : List (Attribute Tag.Button ev) -> List (Node ev) -> Node ev
+button = El _
 
 export %inline
-canvas : List (Attribute ev) -> List (Node ev) -> Node ev
-canvas = El "canvas"
+canvas : List (Attribute Canvas ev) -> List (Node ev) -> Node ev
+canvas = El _
 
 export %inline
-caption : List (Attribute ev) -> List (Node ev) -> Node ev
-caption = El "caption"
+caption : List (Attribute Caption ev) -> List (Node ev) -> Node ev
+caption = El _
 
 export %inline
-col : List (Attribute ev) -> List (Node ev) -> Node ev
-col = El "col"
+col : List (Attribute Col ev) -> List (Node ev) -> Node ev
+col = El _
 
 export %inline
-colgroup : List (Attribute ev) -> List (Node ev) -> Node ev
-colgroup = El "colgroup"
+colgroup : List (Attribute Colgroup ev) -> List (Node ev) -> Node ev
+colgroup = El _
 
 export %inline
-data_ : List (Attribute ev) -> List (Node ev) -> Node ev
-data_ = El "data"
+data_ : List (Attribute Data ev) -> List (Node ev) -> Node ev
+data_ = El _
 
 export %inline
-datalist : List (Attribute ev) -> List (Node ev) -> Node ev
-datalist = El "datalist"
+datalist : List (Attribute Datalist ev) -> List (Node ev) -> Node ev
+datalist = El _
 
 export %inline
-del : List (Attribute ev) -> List (Node ev) -> Node ev
-del = El "del"
+del : List (Attribute Del ev) -> List (Node ev) -> Node ev
+del = El _
 
 export %inline
-details : List (Attribute ev) -> List (Node ev) -> Node ev
-details = El "details"
+details : List (Attribute Details ev) -> List (Node ev) -> Node ev
+details = El _
 
 export %inline
-dialog : List (Attribute ev) -> List (Node ev) -> Node ev
-dialog = El "dialog"
+dialog : List (Attribute Dialog ev) -> List (Node ev) -> Node ev
+dialog = El _
 
 export %inline
-div : List (Attribute ev) -> List (Node ev) -> Node ev
-div = El "div"
+div : List (Attribute Div ev) -> List (Node ev) -> Node ev
+div = El _
 
 export %inline
-dl : List (Attribute ev) -> List (Node ev) -> Node ev
-dl = El "dl"
+dl : List (Attribute Dl ev) -> List (Node ev) -> Node ev
+dl = El _
 
 export %inline
-embed : List (Attribute ev) -> List (Node ev) -> Node ev
-embed = El "embed"
+embed : List (Attribute Embed ev) -> List (Node ev) -> Node ev
+embed = El _
 
 export %inline
-fieldset : List (Attribute ev) -> List (Node ev) -> Node ev
-fieldset = El "fieldSet"
+fieldset : List (Attribute FieldSet ev) -> List (Node ev) -> Node ev
+fieldset = El _
 
 export %inline
-footer : List (Attribute ev) -> List (Node ev) -> Node ev
-footer = El "footer"
+footer : List (Attribute Footer ev) -> List (Node ev) -> Node ev
+footer = El _
 
 export %inline
-form : List (Attribute ev) -> List (Node ev) -> Node ev
-form = El "form"
+form : List (Attribute Form ev) -> List (Node ev) -> Node ev
+form = El _
 
 export %inline
-h1 : List (Attribute ev) -> List (Node ev) -> Node ev
-h1 = El "h1"
+h1 : List (Attribute H1 ev) -> List (Node ev) -> Node ev
+h1 = El _
 
 export %inline
-h2 : List (Attribute ev) -> List (Node ev) -> Node ev
-h2 = El "h2"
+h2 : List (Attribute H2 ev) -> List (Node ev) -> Node ev
+h2 = El _
 
 export %inline
-h3 : List (Attribute ev) -> List (Node ev) -> Node ev
-h3 = El "h3"
+h3 : List (Attribute H3 ev) -> List (Node ev) -> Node ev
+h3 = El _
 
 export %inline
-h4 : List (Attribute ev) -> List (Node ev) -> Node ev
-h4 = El "h4"
+h4 : List (Attribute H4 ev) -> List (Node ev) -> Node ev
+h4 = El _
 
 export %inline
-h5 : List (Attribute ev) -> List (Node ev) -> Node ev
-h5 = El "h5"
+h5 : List (Attribute H5 ev) -> List (Node ev) -> Node ev
+h5 = El _
 
 export %inline
-h6 : List (Attribute ev) -> List (Node ev) -> Node ev
-h6 = El "h6"
+h6 : List (Attribute H6 ev) -> List (Node ev) -> Node ev
+h6 = El _
 
 export %inline
-header : List (Attribute ev) -> List (Node ev) -> Node ev
-header = El "header"
+header : List (Attribute Header ev) -> List (Node ev) -> Node ev
+header = El _
 
 export %inline
-hr : List (Attribute ev) -> List (Node ev) -> Node ev
-hr = El "hr"
+hr : List (Attribute HR ev) -> List (Node ev) -> Node ev
+hr = El _
 
 export %inline
-html : List (Attribute ev) -> List (Node ev) -> Node ev
-html = El "html"
+html : List (Attribute Html ev) -> List (Node ev) -> Node ev
+html = El _
 
 export %inline
-iframe : List (Attribute ev) -> List (Node ev) -> Node ev
-iframe = El "iframe"
+iframe : List (Attribute IFrame ev) -> List (Node ev) -> Node ev
+iframe = El _
 
 export %inline
-img : List (Attribute ev) -> List (Node ev) -> Node ev
-img = El "img"
+img : List (Attribute Img ev) -> List (Node ev) -> Node ev
+img = El _
 
 export %inline
-input : List (Attribute ev) -> List (Node ev) -> Node ev
-input = El "input"
+input : List (Attribute Tag.Input ev) -> List (Node ev) -> Node ev
+input = El _
 
 export %inline
-ins : List (Attribute ev) -> List (Node ev) -> Node ev
-ins = El "ins"
+ins : List (Attribute Ins ev) -> List (Node ev) -> Node ev
+ins = El _
 
 export %inline
-label : List (Attribute ev) -> List (Node ev) -> Node ev
-label = El "label"
+label : List (Attribute Label ev) -> List (Node ev) -> Node ev
+label = El _
 
 export %inline
-legend : List (Attribute ev) -> List (Node ev) -> Node ev
-legend = El "legend"
+legend : List (Attribute Legend ev) -> List (Node ev) -> Node ev
+legend = El _
 
 export %inline
-li : List (Attribute ev) -> List (Node ev) -> Node ev
-li = El "li"
+li : List (Attribute Li ev) -> List (Node ev) -> Node ev
+li = El _
 
 export %inline
-link : List (Attribute ev) -> List (Node ev) -> Node ev
-link = El "link"
+link : List (Attribute Link ev) -> List (Node ev) -> Node ev
+link = El _
 
 export %inline
-map : List (Attribute ev) -> List (Node ev) -> Node ev
-map = El "map"
+map : List (Attribute Map ev) -> List (Node ev) -> Node ev
+map = El _
 
 export %inline
-menu : List (Attribute ev) -> List (Node ev) -> Node ev
-menu = El "menu"
+menu : List (Attribute Menu ev) -> List (Node ev) -> Node ev
+menu = El _
 
 export %inline
-meta : List (Attribute ev) -> List (Node ev) -> Node ev
-meta = El "meta"
+meta : List (Attribute Meta ev) -> List (Node ev) -> Node ev
+meta = El _
 
 export %inline
-meter : List (Attribute ev) -> List (Node ev) -> Node ev
-meter = El "meter"
+meter : List (Attribute Meter ev) -> List (Node ev) -> Node ev
+meter = El _
 
 export %inline
-object : List (Attribute ev) -> List (Node ev) -> Node ev
-object = El "object"
+object : List (Attribute Object ev) -> List (Node ev) -> Node ev
+object = El _
 
 export %inline
-ol : List (Attribute ev) -> List (Node ev) -> Node ev
-ol = El "ol"
+ol : List (Attribute Ol ev) -> List (Node ev) -> Node ev
+ol = El _
 
 export %inline
-optgroup : List (Attribute ev) -> List (Node ev) -> Node ev
-optgroup = El "optgroup"
+optgroup : List (Attribute OptGroup ev) -> List (Node ev) -> Node ev
+optgroup = El _
 
 export %inline
-option : List (Attribute ev) -> List (Node ev) -> Node ev
-option = El "option"
+option : List (Attribute Option ev) -> List (Node ev) -> Node ev
+option = El _
 
 export %inline
-output : List (Attribute ev) -> List (Node ev) -> Node ev
-output = El "output"
+output : List (Attribute Output ev) -> List (Node ev) -> Node ev
+output = El _
 
 export %inline
-p : List (Attribute ev) -> List (Node ev) -> Node ev
-p = El "p"
+p : List (Attribute P ev) -> List (Node ev) -> Node ev
+p = El _
 
 export %inline
-param : List (Attribute ev) -> List (Node ev) -> Node ev
-param = El "param"
+param : List (Attribute Param ev) -> List (Node ev) -> Node ev
+param = El _
 
 export %inline
-picture : List (Attribute ev) -> List (Node ev) -> Node ev
-picture = El "picture"
+picture : List (Attribute Picture ev) -> List (Node ev) -> Node ev
+picture = El _
 
 export %inline
-pre : List (Attribute ev) -> List (Node ev) -> Node ev
-pre = El "pre"
+pre : List (Attribute Pre ev) -> List (Node ev) -> Node ev
+pre = El _
 
 export %inline
-progress : List (Attribute ev) -> List (Node ev) -> Node ev
-progress = El "progress"
+progress : List (Attribute Progress ev) -> List (Node ev) -> Node ev
+progress = El _
 
 export %inline
-q : List (Attribute ev) -> List (Node ev) -> Node ev
-q = El "q"
+q : List (Attribute Q ev) -> List (Node ev) -> Node ev
+q = El _
 
 export %inline
-script : List (Attribute ev) -> List (Node ev) -> Node ev
-script = El "script"
+script : List (Attribute Script ev) -> List (Node ev) -> Node ev
+script = El _
 
 export %inline
-section : List (Attribute ev) -> List (Node ev) -> Node ev
-section = El "section"
+section : List (Attribute Section ev) -> List (Node ev) -> Node ev
+section = El _
 
 export %inline
-select : List (Attribute ev) -> List (Node ev) -> Node ev
-select = El "select"
+select : List (Attribute Select ev) -> List (Node ev) -> Node ev
+select = El _
 
 export %inline
-slot : List (Attribute ev) -> List (Node ev) -> Node ev
-slot = El "slot"
+slot : List (Attribute Slot ev) -> List (Node ev) -> Node ev
+slot = El _
 
 export %inline
-source : List (Attribute ev) -> List (Node ev) -> Node ev
-source = El "source"
+source : List (Attribute Source ev) -> List (Node ev) -> Node ev
+source = El _
 
 export %inline
-span : List (Attribute ev) -> List (Node ev) -> Node ev
-span = El "span"
+span : List (Attribute Span ev) -> List (Node ev) -> Node ev
+span = El _
 
 export %inline
-style : List (Attribute ev) -> List (Node ev) -> Node ev
-style = El "style"
+style : List (Attribute Style ev) -> List (Node ev) -> Node ev
+style = El _
 
 export %inline
-table : List (Attribute ev) -> List (Node ev) -> Node ev
-table = El "table"
+table : List (Attribute Table ev) -> List (Node ev) -> Node ev
+table = El _
 
 export %inline
-tbody : List (Attribute ev) -> List (Node ev) -> Node ev
-tbody = El "tbody"
+tbody : List (Attribute Tbody ev) -> List (Node ev) -> Node ev
+tbody = El _
 
 export %inline
-td : List (Attribute ev) -> List (Node ev) -> Node ev
-td = El "td"
+td : List (Attribute Td ev) -> List (Node ev) -> Node ev
+td = El _
 
 export %inline
-template : List (Attribute ev) -> List (Node ev) -> Node ev
-template = El "template"
+template : List (Attribute Template ev) -> List (Node ev) -> Node ev
+template = El _
 
 export %inline
-textarea : List (Attribute ev) -> List (Node ev) -> Node ev
-textarea = El "textarea"
+textarea : List (Attribute TextArea ev) -> List (Node ev) -> Node ev
+textarea = El _
 
 export %inline
-tfoot : List (Attribute ev) -> List (Node ev) -> Node ev
-tfoot = El "tfoot"
+tfoot : List (Attribute Tfoot ev) -> List (Node ev) -> Node ev
+tfoot = El _
 
 export %inline
-th : List (Attribute ev) -> List (Node ev) -> Node ev
-th = El "th"
+th : List (Attribute Th ev) -> List (Node ev) -> Node ev
+th = El _
 
 export %inline
-thead : List (Attribute ev) -> List (Node ev) -> Node ev
-thead = El "thead"
+thead : List (Attribute Thead ev) -> List (Node ev) -> Node ev
+thead = El _
 
 export %inline
-time : List (Attribute ev) -> List (Node ev) -> Node ev
-time = El "time"
+time : List (Attribute Tag.Time ev) -> List (Node ev) -> Node ev
+time = El _
 
 export %inline
-title : List (Attribute ev) -> List (Node ev) -> Node ev
-title = El "title"
+title : List (Attribute Title ev) -> List (Node ev) -> Node ev
+title = El _
 
 export %inline
-tr : List (Attribute ev) -> List (Node ev) -> Node ev
-tr = El "tr"
+tr : List (Attribute Tr ev) -> List (Node ev) -> Node ev
+tr = El _
 
 export %inline
-track : List (Attribute ev) -> List (Node ev) -> Node ev
-track = El "track"
+track : List (Attribute Track ev) -> List (Node ev) -> Node ev
+track = El _
 
 export %inline
-ul : List (Attribute ev) -> List (Node ev) -> Node ev
-ul = El "ul"
+ul : List (Attribute Ul ev) -> List (Node ev) -> Node ev
+ul = El _
 
 export %inline
-video : List (Attribute ev) -> List (Node ev) -> Node ev
-video = El "video"
+video : List (Attribute Video ev) -> List (Node ev) -> Node ev
+video = El _
 
 --------------------------------------------------------------------------------
 --          Rendering Html
@@ -354,16 +357,16 @@ escape = fastConcat . map esc . unpack
         esc '\t'         = "\t"
         esc c            = if c < ' ' then "" else singleton c
 
-attrs : List (Attribute ev) -> String
+attrs : List (Attribute t ev) -> String
 attrs as = let s = displayAttributes as in if null s then "" else " " ++ s
 
 export
 render : Node ev -> String
 render n = case n of
-  Raw x         => x
-  Text x        => escape x
-  El tag as ns  => "<\{tag}\{attrs as}>\{go [<] ns}</\{tag}>"
-  Empty         => ""
+  Raw x             => x
+  Text x            => escape x
+  El {tag} _ as ns  => "<\{tag}\{attrs as}>\{go [<] ns}</\{tag}>"
+  Empty             => ""
 
   where
     go : SnocList String -> List (Node ev) -> String

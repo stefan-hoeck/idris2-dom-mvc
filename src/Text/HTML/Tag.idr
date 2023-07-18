@@ -86,3 +86,28 @@ data HTMLTag : (tag : String) -> Type where
   Track      : HTMLTag "track"
   Ul         : HTMLTag "ul"
   Video      : HTMLTag "video"
+
+||| Proof that we can set a custom validity message to
+||| a HTML object with this tag.
+public export
+data ValidityTag : (t : HTMLTag s) -> Type where
+  SVButton   : ValidityTag Button
+  SVFieldSet : ValidityTag FieldSet
+  SVInput    : ValidityTag Input
+  SVObject   : ValidityTag Object
+  SVOutput   : ValidityTag Output
+  SVSelect   : ValidityTag Select
+  SVTextArea : ValidityTag TextArea
+
+||| Proof that we can set a string value to
+||| a HTML object with this tag.
+public export
+data ValueTag : (t : HTMLTag s) -> Type where
+  VButton   : ValueTag Button
+  VData     : ValueTag Data
+  VInput    : ValueTag Input
+  VOption   : ValueTag Option
+  VOutput   : ValueTag Output
+  VParam    : ValueTag Param
+  VSelect   : ValueTag Select
+  VTextArea : ValueTag TextArea

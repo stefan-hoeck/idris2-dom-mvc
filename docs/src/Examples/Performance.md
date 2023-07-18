@@ -99,13 +99,13 @@ grid of buttons, we need a reference for each button,
 since we want to disable them after they have been clicked:
 
 ```idris
-btnRef : Nat -> ElemRef
-btnRef n = Id Button "BTN\{show n}"
+btnRef : Nat -> Ref Tag.Button
+btnRef n = Id "BTN\{show n}"
 
 btn : Nat -> Node PerfEv
 btn n =
   button
-    [ref (btnRef n), onClick (Set n), classes [widget,btn,inc]]
+    [Id (btnRef n), onClick (Set n), classes [widget,btn,inc]]
     [Text $ show n]
 ```
 
@@ -132,17 +132,17 @@ content : Node PerfEv
 content =
   div [ class performanceContent ]
     [ lbl "Number of buttons:" numButtonsLbl
-    , input [ ref natIn
+    , input [ Id natIn
             , onInput (NumChanged . read)
             , onEnterDown Reload
             , classes [widget, textIn]
             , placeholder "Enter a positive integer"
             ] []
-    , button [ref btnRun, onClick Reload, classes [widget, btn]] ["Run"]
+    , button [Id btnRun, onClick Reload, classes [widget, btn]] ["Run"]
     , lbl "Sum:" sumLbl
-    , div [ref out] []
-    , div [ref time] []
-    , div [ref buttons] []
+    , div [Id out] []
+    , div [Id time] []
+    , div [Id buttons] []
     ]
 ```
 

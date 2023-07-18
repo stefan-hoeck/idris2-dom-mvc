@@ -3,13 +3,13 @@ module Web.MVC.Reactimate
 import Control.Monad.Either.Extra
 import Data.List.Quantifiers.Extra
 import JS
-import Web.MVC.Canvas
-import Web.MVC.DOMUpdate
-import Web.MVC.ElemRef
-import Web.MVC.Event
 import Text.HTML
 import Web.Dom
 import Web.Html
+import Web.MVC.Canvas
+import Web.MVC.DOMUpdate
+import Web.MVC.Event
+import Web.MVC.Output
 
 %default total
 
@@ -76,14 +76,14 @@ parameters {0    e : Type}
 
   ||| Manually register an event handler at the given element
   export
-  handleEvent : ElemRef -> DOMEvent e -> JSIO ()
+  handleEvent : Ref t -> DOMEvent e -> JSIO ()
   handleEvent ref de = do
     el  <- castElementByRef ref
     registerDOMEvent handle el de
 
   export
-  setAttribute : Element -> Attribute e -> JSIO ()
-  setAttribute el (Id value)        = setAttribute el "id" value
+  setAttribute : Element -> Attribute t e -> JSIO ()
+  setAttribute el (Id (Id value))   = setAttribute el "id" value
   setAttribute el (Str name value)  = setAttribute el name value
   setAttribute el (Bool name value) = case value of
     True  => setAttribute el name ""
@@ -91,13 +91,13 @@ parameters {0    e : Type}
   setAttribute el (Event ev) = registerDOMEvent handle (up el) ev
 
   export
-  setAttributeRef : ElemRef -> Attribute e -> JSIO ()
+  setAttributeRef : Ref t -> Attribute t e -> JSIO ()
   setAttributeRef ref a = do
     el <- castElementByRef ref
     setAttribute el a
 
   export
-  setAttributesRef : ElemRef -> List (Attribute e) -> JSIO ()
+  setAttributesRef : Ref t -> List (Attribute t e) -> JSIO ()
   setAttributesRef el = traverseList_ (setAttributeRef el)
 
 --------------------------------------------------------------------------------
@@ -107,7 +107,7 @@ parameters {0    e : Type}
 parameters {0    e : Type}      -- event type
            (handle : Handler e) -- event handler
 
-  createNode : Document -> String -> List (Attribute e) -> JSIO Element
+  createNode : Document -> String -> List (Attribute t e) -> JSIO Element
   createNode doc str xs = do
     el <- createElement doc str
     traverseList_ (setAttribute handle el) xs
@@ -128,7 +128,7 @@ parameters {0    e : Type}      -- event type
     -> (parent   : t)
     -> (node     : Node e)
     -> JSIO ()
-  addNode doc p (El tag xs ys) = do
+  addNode doc p (El {tag} _ xs ys) = do
     n <- createNode doc tag xs
     append p [inject $ n :> Node]
     addNodes doc n ys
@@ -147,7 +147,7 @@ parameters {0    e : Type}      -- event type
 
   setupNodes :
        (Element -> DocumentFragment -> JSIO ())
-    -> ElemRef
+    -> Ref t
     -> List (Node e)
     -> JSIO ()
   setupNodes adj ref ns = do
@@ -160,7 +160,7 @@ parameters {0    e : Type}      -- event type
   %inline
   setupNode :
        (Element -> DocumentFragment -> JSIO ())
-    -> ElemRef
+    -> Ref t
     -> Node e
     -> JSIO ()
   setupNode adj ref n = setupNodes adj ref [n]
@@ -168,73 +168,73 @@ parameters {0    e : Type}      -- event type
   ||| Sets up the reactive behavior of the given `Node`s and
   ||| inserts them as the children of the given target.
   export %inline
-  innerHtmlAtN : ElemRef -> List (Node e) -> JSIO ()
+  innerHtmlAtN : Ref t -> List (Node e) -> JSIO ()
   innerHtmlAtN = setupNodes replaceChildren
 
   ||| Sets up the reactive behavior of the given `Node` and
   ||| inserts it as the only child of the given target.
   export %inline
-  innerHtmlAt : ElemRef -> Node e -> JSIO ()
+  innerHtmlAt : Ref t -> Node e -> JSIO ()
   innerHtmlAt = setupNode replaceChildren
 
   ||| Sets up the reactive behavior of the given `Node`s and
   ||| inserts them after the given child node.
   export %inline
-  afterN : ElemRef -> List (Node e) -> JSIO ()
+  afterN : Ref t -> List (Node e) -> JSIO ()
   afterN = setupNodes afterDF
 
   ||| Sets up the reactive behavior of the given `Node` and
   ||| inserts it after the given child node.
   export %inline
-  after : ElemRef -> Node e -> JSIO ()
+  after : Ref t -> Node e -> JSIO ()
   after = setupNode afterDF
 
   ||| Sets up the reactive behavior of the given `Node`s and
   ||| inserts them before the given child node.
   export %inline
-  beforeN : ElemRef -> List (Node e) -> JSIO ()
+  beforeN : Ref t -> List (Node e) -> JSIO ()
   beforeN = setupNodes beforeDF
 
   ||| Sets up the reactive behavior of the given `Node` and
   ||| inserts it before the given child node.
   export %inline
-  before : ElemRef -> Node e -> JSIO ()
+  before : Ref t -> Node e -> JSIO ()
   before = setupNode beforeDF
 
   ||| Sets up the reactive behavior of the given `Node`s and
   ||| appends them to the given element's list of children
   export %inline
-  appendN : ElemRef -> List (Node e) -> JSIO ()
+  appendN : Ref t -> List (Node e) -> JSIO ()
   appendN = setupNodes appendDF
 
   ||| Sets up the reactive behavior of the given `Node` and
   ||| appends it to the given element's list of children
   export %inline
-  append : ElemRef -> Node e -> JSIO ()
+  append : Ref t -> Node e -> JSIO ()
   append = setupNode appendDF
 
   ||| Sets up the reactive behavior of the given `Node`s and
   ||| prepends them to the given element's list of children
   export %inline
-  prependN : ElemRef -> List (Node e) -> JSIO ()
+  prependN : Ref t -> List (Node e) -> JSIO ()
   prependN = setupNodes prependDF
 
   ||| Sets up the reactive behavior of the given `Node` and
   ||| prepends it to the given element's list of children
   export %inline
-  prepend : ElemRef -> Node e -> JSIO ()
+  prepend : Ref t -> Node e -> JSIO ()
   prepend = setupNode prependDF
 
   ||| Sets up the reactive behavior of the given `Node`s and
   ||| replaces the given element.
   export %inline
-  replaceN : ElemRef -> List (Node e) -> JSIO ()
+  replaceN : Ref t -> List (Node e) -> JSIO ()
   replaceN = setupNodes replaceDF
 
   ||| Sets up the reactive behavior of the given `Node` and
   ||| replaces the given element.
   export %inline
-  replace : ElemRef -> Node e -> JSIO ()
+  replace : Ref t -> Node e -> JSIO ()
   replace = setupNode replaceDF
 
   ||| Execute a single DOM update instruction

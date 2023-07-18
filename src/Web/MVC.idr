@@ -4,8 +4,6 @@ import Data.IORef
 
 import public JS
 import public Web.MVC.DOMUpdate
-import public Web.MVC.ElemRef
-import public Web.MVC.Event
 import public Web.MVC.Reactimate
 import public Text.HTML
 

@@ -60,7 +60,7 @@ content =
               , option [ value "math" ] ["Math Game"]
               ]
           ]
-      , div [ref exampleDiv] []
+      , div [Id exampleDiv] []
       ]
 ```
 

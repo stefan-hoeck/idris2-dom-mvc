@@ -5,7 +5,6 @@ import JS
 import Web.MVC.Canvas.Shape
 import Web.MVC.Canvas.Style
 import Web.MVC.Canvas.Transformation
-import Web.MVC.ElemRef
 import Web.Html
 
 %default total

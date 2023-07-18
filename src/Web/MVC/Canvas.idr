@@ -1,8 +1,10 @@
 module Web.MVC.Canvas
 
 import JS
+import Text.HTML.Ref
+import Text.HTML.Tag
 import Web.Html
-import Web.MVC.ElemRef
+import Web.MVC.Output
 
 import public Web.MVC.Canvas.Angle
 import public Web.MVC.Canvas.Scene
@@ -21,7 +23,7 @@ context2D canvas = do
     Nothing => throwError $ Caught "Web.MVC.Canvas.context2d: No rendering context for canvas"
 
 export
-render : ElemRef -> Scene -> JSIO ()
+render : Ref Canvas -> Scene -> JSIO ()
 render ref scene = do
   canvas <- castElementByRef {t = HTMLCanvasElement} ref
   ctxt   <- context2D canvas

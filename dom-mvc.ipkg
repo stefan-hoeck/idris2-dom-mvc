@@ -27,12 +27,13 @@ modules    = Text.CSS
            , Text.HTML.Attribute
            , Text.HTML.Event
            , Text.HTML.Node
+           , Text.HTML.Ref
            , Text.HTML.Tag
 
            , Web.MVC
            , Web.MVC.Animate
            , Web.MVC.DOMUpdate
-           , Web.MVC.ElemRef
+           , Web.MVC.Output
            , Web.MVC.Event
            , Web.MVC.Reactimate
 

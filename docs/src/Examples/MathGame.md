@@ -357,8 +357,7 @@ For checking answers entered by users, we need a stream function
 over a `StateT` transformer. The alternative would be to pair
 the input and output type of the MSF with `MathST`, and indeed
 the two forms are interconvertible (see `fromState` and `toState`
-from `Data.MSF.Trans`).
-```
+from `Data.MSF.Trans).
 
 When creating a new game, we need to make sure to take over
 the current language setting. Likewise, adjusting the language

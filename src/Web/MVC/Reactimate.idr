@@ -326,6 +326,11 @@ export %inline
 render : Ref Tag.Canvas -> Scene -> DOMUpdate e
 render r s = D (render r s)
 
+||| Focus the given HTMLElemet
+export %inline
+focus : Ref t -> DOMUpdate e
+focus r = D (castElementByRef {t = HTMLElement} r >>= HTMLOrSVGElement.focus)
+
 export
 updateIf : Bool -> Lazy (DOMUpdate e) -> DOMUpdate e
 updateIf True  u = u

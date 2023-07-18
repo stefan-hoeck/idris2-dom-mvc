@@ -2,8 +2,8 @@
 
 Welcome to the dom-mvc tutorial. This as an adaption of the
 example application from the
-[rhone-js library](https://github.com/stefan-hoeck/idris2-dom),
-which I used to use for writing interactive single page web
+[rhone-js](https://github.com/stefan-hoeck/idris2-rhone-js),
+library I used to use for writing interactive single page web
 applications in Idris, but which turned out to be overly
 complicated for most tasks. Here, we take a simpler and -
 in my opinion - more satisfying approach.
@@ -13,8 +13,8 @@ in my opinion - more satisfying approach.
 Most posts in this tutorial are literate Idris2 files that
 can be built and tried in your own browser. All you have to do
 is to install the
-[pack package manager](https://github.com/stefan-hoeck/idris2-pack),
-run `make page` from the project's root directory and
+[pack](https://github.com/stefan-hoeck/idris2-pack),
+package manager, run `make page` from the project's root directory and
 load `mvc.html` in your browser afterwards.
 
 ## The `main` Function
@@ -36,7 +36,7 @@ This just imports and runs the user interface `ui` defined in module
 `Examples.Selector`. We will have a closer
 look at function `runMVC` once we understand the general
 structure of a dom-mvc project. Function `runJS` comes from
-the [idris2-js](https://github.com/stefan-hoeck/idris2-dom)
+the [idris2-js](https://github.com/stefan-hoeck/idris2-dom/js/)
 library: To properly deal with the uncertainties of the
 JavaScript language, the core IO type we use most of the time
 is `JSIO`, which is an alias for `EitherT JSErr IO`, where

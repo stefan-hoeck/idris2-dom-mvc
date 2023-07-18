@@ -46,14 +46,24 @@ properly formatted HTML on any backend.
 Here is the layout of the main page:
 
 ```idris
-content : Node String
+public export
+data App = Reset | Perf | Balls | Fract | Math
+
+toApp : String -> App
+toApp "perf"  = Perf
+toApp "balls" = Balls
+toApp "fract" = Fract
+toApp "math"  = Math
+toApp _       = Reset
+
+content : Node App
 content =
   div [ class contentList ]
       [ div [class pageTitle] ["dom-mvc: Examples"]
       , div [class contentHeader]
           [ label [class widgetLabel] ["Choose an Example"]
           , select
-              [ classes [widget, selectIn, exampleSelector], onChange id]
+              [ classes [widget, selectIn, exampleSelector], onChange toApp]
               [ option [ value "reset", selected True ] ["Counting Clicks"]
               , option [ value "performance" ] ["Performance"]
               , option [ value "fractals" ] ["Fractals"]
@@ -140,7 +150,7 @@ Enough talk, here's the code:
 ```idris
 public export
 0 Events : List Type
-Events = [String, BallsEv, FractEv, PerfEv, ResetEv, MathEv]
+Events = [App, BallsEv, FractEv, PerfEv, ResetEv, MathEv]
 
 public export
 0 SelectEv : Type
@@ -164,13 +174,12 @@ init = S init 0 init init init
 0 Controller : Type -> Type
 Controller e = e -> ST -> JSIO ST
 
-runSelect : Handler SelectEv -> String -> JSIO ST
-runSelect h "reset"       = modifyA resetL (runReset h Init) init
-runSelect h "performance" = modifyA perfL  (runPerf h Init) init
-runSelect h "balls"       = modifyA ballsL (runBalls h Init) init
-runSelect h "fractals"    = modifyA fractL (runFract h Init) init
-runSelect h "math"        = modifyA mathL  (runMath h Init) init
-runSelect h _             = do
+runSelect : Handler SelectEv -> App -> JSIO ST
+runSelect h Perf  = modifyA perfL  (runPerf h Init) init
+runSelect h Balls = modifyA ballsL (runBalls h Init) init
+runSelect h Fract = modifyA fractL (runFract h Init) init
+runSelect h Math  = modifyA mathL  (runMath h Init) init
+runSelect h Reset = do
   updateDOM (h . inject)
     [ style appStyle allRules , child contentDiv content ]
   modifyA resetL (runReset h Init) init

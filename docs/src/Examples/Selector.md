@@ -49,7 +49,7 @@ Here is the layout of the main page:
 content : Node String
 content =
   div [ class contentList ]
-      [ div [class pageTitle] ["rhone-js: Examples"]
+      [ div [class pageTitle] ["dom-mvc: Examples"]
       , div [class contentHeader]
           [ label [class widgetLabel] ["Choose an Example"]
           , select

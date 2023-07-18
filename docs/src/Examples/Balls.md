@@ -17,7 +17,11 @@ module Examples.Balls
 
 import Data.Either
 import Data.Nat
+import Data.Refined.Integer
 import Data.Vect
+
+import Derive.Prelude
+import Derive.Refined
 
 import Examples.CSS.Colors
 import Examples.CSS.Balls
@@ -29,6 +33,7 @@ import Web.MVC.Animate
 import Web.MVC.Canvas
 
 %default total
+%language ElabReflection
 ```
 
 ## Model
@@ -68,14 +73,13 @@ r = 0.1
 v0 : Double
 v0 = 4
 
+-- vector addition
 (+) : V2 -> V2 -> V2
 [u,v] + [x,y] = [u+x, v+y]
 
+-- multiplication with a scalar
 (*) : Double -> V2 -> V2
 m * [x,y] = [m * x, m * y]
-
-fpsCount : Nat
-fpsCount = 15
 ```
 
 We need a data type to hold the current state of a
@@ -88,6 +92,70 @@ record Ball where
   pos : V2
   vel : Velocity
 ```
+
+Next, we define the event type and application state.
+We use again a refined primitive to make sure user input
+has been properly validated:
+
+```idris
+MinBalls, MaxBalls : Integer
+MinBalls  = 1
+MaxBalls  = 5000
+
+record NumBalls where
+  constructor B
+  value : Integer
+  {auto 0 prf : FromTo MinBalls MaxBalls value}
+
+%runElab derive "NumBalls" [Show,Eq,Ord,RefinedInteger]
+
+public export
+data BallsEv : Type where
+  BallsInit  : BallsEv
+  Run        : BallsEv
+  NumIn      : Either String NumBalls -> BallsEv
+  Next       : DTime -> BallsEv
+
+public export
+record BallsST where
+  constructor BS
+  balls    : List Ball
+  count    : Nat
+  dtime    : DTime
+  numBalls : Maybe NumBalls
+  cleanUp  : IO ()
+
+fpsCount : Nat
+fpsCount = 15
+
+export
+init : BallsST
+init = BS [] fpsCount 0 Nothing (pure ())
+
+read : String -> Either String NumBalls
+read =
+  let err := "expected integer between \{show MinBalls} and \{show MaxBalls}"
+   in maybeToEither err . refineNumBalls . cast
+```
+
+A couple of things require some explanation:
+
+First: We want to display the performance of our animation and display
+the number of frames per second. For this, we accumulate the time
+taken to animate 15 frames (`fpsCount`) and reduce a counter
+(`count`) on every frame.
+
+Second: We want to make sure the animation is stopped once the user
+selects another example application. Field `cleanUp` is used for this.
+It is set to a dummy initially, but once the controller starts the
+animation, it is replace with a proper cleanup hook.
+This is then invoked in the cleanup routine of the main selector application
+when applications are switched.
+
+Third: We are going to react on an event that is not fired due
+to user interaction in this example app. Event `Next dt` will be
+fired from the animation we start. It is registered in main
+controller at the end of this source file.
 
 ## View
 
@@ -113,7 +181,7 @@ ballToScene b@(MkBall _ [x,y] _) =
 ```
 
 The utilities for describing and rendering a canvas scene
-can be found at `Rhone.Canvas` and its submodules.
+can be found at `Web.MVC.Canvas` and its submodules.
 
 We also draw some primitive walls and a floor to visualize
 the room:
@@ -143,41 +211,12 @@ ballsToScene bs =
 ```
 
 Of course, we also need to set up the HTML objects of
-our application plus the events they fire: `Next dt`
-is used to move the animation forward by `dt`
-milliseconds.
+our application:
 
 ```idris
-public export
-data BallsEv : Type where
-  BallsInit  : BallsEv
-  Run        : BallsEv
-  NumIn      : Either String Nat -> BallsEv
-  Next       : DTime -> BallsEv
-
-public export
-record BallsST where
-  constructor BS
-  balls    : List Ball
-  count    : Nat
-  dtime    : DTime
-  numBalls : Maybe Nat
-  cleanUp  : IO ()
-
-export
-init : BallsST
-init = BS [] fpsCount 0 Nothing (pure ())
-
 -- canvas width and height
 wcanvas : Bits32
 wcanvas = 520
-
-read : String -> Either String Nat
-read s =
-  let n = cast {to = Nat} s
-   in if 0 < n && n <= 5000
-        then Right n
-        else Left "Enter a number between 1 and 1000"
 
 content : Node BallsEv
 content =
@@ -187,7 +226,7 @@ content =
             , onInput (NumIn . read)
             , onEnterDown Run
             , class widget
-            , placeholder "Range: [1,5000]"
+            , placeholder "Range: [\{show MinBalls}, \{show MaxBalls}]"
             ] []
     , button [Id btnRun, onClick Run, classes [widget,btn]] ["Run"]
     , div [Id log] []
@@ -198,16 +237,7 @@ content =
 ## Controller
 
 The main focus of the controller will be to properly
-animate the bouncing balls. We could try and use a functional
-reactive programming approach implemented on top of
-monadic stream functions. However, while MSFs perform
-reasonably well, their monadic contexts will impose
-some overhead, and we don't want that when animating
-lots of objects (I tried this application first
-with having a dedicated MSF for each individual ball:
-Up to about 500 balls, performance was pretty good
-at about 40 FPS on my machine, which is very
-promising for programming interactive animations).
+animate the bouncing balls.
 
 For calculating the next position and velocity vector
 of a ball, we use simple Newtonian physics and some
@@ -243,10 +273,8 @@ them at a height of nine meters, giving them
 slightly different colors and starting velocities:
 
 ```idris
-||| Generates a list of balls to start the simulation.
-export
-initialBalls : (n : Nat) -> List Ball
-initialBalls n = go n Nil
+initialBalls : NumBalls -> List Ball
+initialBalls (B n) = go (cast n) Nil
   where col : Bits8 -> Color
         col 0 = comp100
         col 1 = comp80
@@ -266,18 +294,10 @@ initialBalls n = go n Nil
         go (S k) bs = go k $ ball k :: bs
 ```
 
-The controller handling the animation will use a state
-accumulator for the balls and advance them the given
-number of milliseconds:
+Adjusting the state involves some fiddling with the FPS counter.
+The rest is pretty straight forward:
 
 ```idris
-export
-showFPS : Bits32 -> String
-showFPS 0 = ""
-showFPS n =
-  let val := 1000 * cast fpsCount `div` n
-   in "FPS: \{show val}"
-
 adjST : BallsEv -> BallsST -> BallsST
 adjST BallsInit _ = init
 adjST Run       s = {balls := maybe s.balls initialBalls s.numBalls} s
@@ -285,6 +305,17 @@ adjST (NumIn x) s = {numBalls := eitherToMaybe x} s
 adjST (Next m)  s = case s.count of
   0   => { balls $= map (nextBall m), dtime := 0, count := fpsCount } s
   S k => { balls $= map (nextBall m), dtime $= (+m), count := k } s
+```
+
+Almost all events will be fired from the animation, so its safe
+to render the scene on every event:
+
+```idris
+showFPS : Bits32 -> String
+showFPS 0 = ""
+showFPS n =
+  let val := 1000 * cast fpsCount `div` n
+   in "FPS: \{show val}"
 
 displayST : BallsST -> List (DOMUpdate BallsEv)
 displayST s =
@@ -292,7 +323,13 @@ displayST s =
   , render out (ballsToScene s.balls)
   , updateIf (s.count == 0) (text log $ showFPS s.dtime)
   ]
+```
 
+In addition, we redraw the whole application in case of the `Init`
+event, and we update the text field's validation message upon
+user input:
+
+```idris
 displayEv : BallsEv -> DOMUpdate BallsEv
 displayEv BallsInit = child exampleDiv content
 displayEv Run       = noAction
@@ -301,18 +338,23 @@ displayEv (Next m)  = noAction
 
 display : BallsEv -> BallsST -> List (DOMUpdate BallsEv)
 display e s = displayEv e :: displayST s
+```
 
+The main controller must make sure the animation is started
+by registering an event handler upon initialization.
+Function `Web.MVC.Animate.animate` will respond with a
+cleanup hook, which we put in the `cleanUp` field of the
+application state.
+
+```idris
 export
 runBalls : Handler BallsEv => Controller BallsST BallsEv
 runBalls BallsInit s = do
-  s2   <- runDOM adjST display BallsInit s
-  stop <- animate (handle . Next)
-  pure $ {cleanUp := stop} s2
+  s2   <- runDOM adjST display BallsInit s -- setup HTML part of UI
+  stop <- animate (handle . Next)          -- start animation
+  pure $ {cleanUp := stop} s2              -- register cleanup hook
 runBalls e s = runDOM adjST display e s
 ```
-
-We now only need to write the controllers for reading user
-input and running the application:
 
 <!-- vi: filetype=idris2:syntax=markdown
 -->

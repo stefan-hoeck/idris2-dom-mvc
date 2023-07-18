@@ -40,12 +40,18 @@ and they can change the UI's language:
 ```idris
 data Language = EN | DE
 
-%runElab derive "Language" [Show,Eq]
+%runElab derive "Language" [Eq]
 
 public export
-data Ev = Lang String | Check | NewGame
+data MathEv : Type where
+  Lang  : Language -> MathEv
+  Check : MathEv
+  Init  : MathEv
+  Inp   : String -> MathEv
 
-%runElab derive "Ev" [Show,Eq]
+lang : String -> MathEv
+lang "de" = Lang DE
+lang _    = Lang EN
 ```
 
 We also need data types for representing the calculations
@@ -91,15 +97,28 @@ record Tile where
   posY    : Bits8
   calc    : Calc
 
-record GameState where
-  constructor MkGS
+data Result : Type where
+  Ended   : Result
+  Correct : Result
+  Wrong   : Calc -> Integer -> Result
+
+
+public export
+record MathST where
+  constructor MS
   lang   : Language
+  answer : String
+  result : Maybe Result
   rows   : Bits8
   wrong  : List Tile
   calcs  : List Tile
   pic    : String
 
-currentCalc : GameState -> Maybe Calc
+export
+init : MathST
+init = MS EN "" Nothing 0 [] [] ""
+
+currentCalc : MathST -> Maybe Calc
 currentCalc gs = case gs.calcs of
   t :: _ => Just t.calc
   Nil    => Nothing
@@ -122,14 +141,10 @@ a [separate module](CSS/MathGame.idr). We start with defining
 the localized strings we need:
 
 ```idris
-data Result = Ended Language
-            | Correct Language
-            | Wrong Language Calc Integer
-
 style : Result -> Maybe String
-style (Ended _)     = Nothing
-style (Correct _)   = Just "color : \{green}"
-style (Wrong _ _ _) = Just "color : \{red}"
+style Ended       = Nothing
+style Correct     = Just "color : \{green}"
+style (Wrong _ _) = Just "color : \{red}"
 
 language : Language -> String
 language DE = "Sprache"
@@ -155,15 +170,15 @@ newGameStr : Language -> String
 newGameStr DE = "Neues Spiel"
 newGameStr EN = "New game"
 
-reply : Result -> String
-reply (Ended EN)   = "The game has ended."
-reply (Correct EN) = "Correct!"
-reply (Ended DE)   = "Das Spiel ist vorbei."
-reply (Correct DE) = "Richtig!"
-reply (Wrong EN c n) =
+reply : Language -> Result -> String
+reply EN Ended   = "The game has ended."
+reply EN Correct = "Correct!"
+reply DE Ended   = "Das Spiel ist vorbei."
+reply DE Correct = "Richtig!"
+reply EN (Wrong c n) =
      "That's not correct. Your answer was \{show n}. "
   ++ "The correct answer is: \{dispCalc c} \{show $ result c}."
-reply (Wrong DE c n) =
+reply DE (Wrong c n) =
      "Leider falsch. Deine Antwort war \{show n}. "
   ++ "Die richtige Antwort ist: \{dispCalc c} \{show $ result c}."
 ```
@@ -174,12 +189,12 @@ We can now define the HTML elements of the application:
 wcanvas : Bits32
 wcanvas = 500
 
-content : Language -> Node Ev
+content : Language -> Node MathEv
 content l =
   div [ class mathContent ]
     [ lbl "\{language l}:" lblLang
     , select
-        [ Id langIn, classes [widget, selectIn], onChange Lang]
+        [ Id langIn, classes [widget, selectIn], onChange lang]
         [ option [ value "de", selected (l == DE)] [Text $ german l]
         , option [ value "en", selected (l == EN)] [Text $ english l]
         ]
@@ -188,6 +203,7 @@ content l =
 
     , input [ Id resultIn
             , onEnterDown Check
+            , onInput Inp
             , class widget
             , placeholder (resultStr l)
             ] []
@@ -198,7 +214,7 @@ content l =
              ] [Text $ checkAnswerStr l]
 
     , button [ Id newBtn
-             , onClick NewGame
+             , onClick Init
              , classes [widget,btn]
              ] [Text $ newGameStr l]
 
@@ -220,16 +236,13 @@ tile t = S1 [] Id $ Rect (cast t.posX) (cast t.posY) 1 1 Fill
 stuckColor : Color
 stuckColor = HSLA 0 0 50 80
 
-dispState : GameState -> Scene
+dispState : MathST -> Scene
 dispState gs =
   let sf = cast {to = Double} wcanvas / cast gs.rows
    in SM [] (scale sf sf)
         [ SM [ Fill black ] Id $ map tile gs.calcs
         , SM [ Fill stuckColor ] Id $ map tile gs.wrong
         ]
-
-renderGame : GameState -> JSIO ()
-renderGame gs = render pic (dispState gs)
 ```
 
 ## Controller
@@ -272,12 +285,12 @@ randomTile (px,py) = do
   sortVal <- randomRIO (0, 1000)
   pure (sortVal, MkTile px py c)
 
-randomGame : HasIO io => Language -> io GameState
+randomGame : HasIO io => Language -> io MathST
 randomGame l = do
   pic   <- rndSelect pictures
   pairs <- traverse randomTile [| MkPair [0..3] [0..3] |]
   let ts = snd <$> sortBy (comparing fst) pairs
-  pure $ MkGS l 4 Nil ts pic
+  pure $ MS l "" Nothing 4 Nil ts pic
 ```
 
 For implementing the wirings of the application, we first
@@ -292,13 +305,13 @@ It takes a pair of the user input and the current game state
 and returns a `Result` plus the updated state:
 
 ```idris
-checkAnswer : String -> GameState -> HList [Result,GameState]
-checkAnswer s (MkGS l nr wrong (h :: t) pic) =
-  let answer = cast s
-   in if result h.calc == answer
-      then [Correct l, MkGS l nr wrong t pic]
-      else [Wrong l h.calc answer, MkGS l nr (h :: wrong) t pic]
-checkAnswer s gs = [Ended gs.lang, gs]
+checkAnswer : MathST -> MathST
+checkAnswer (MS l s _ nr wrong (h :: t) pic) =
+  let ans := cast {to = Integer} s
+   in if result h.calc == ans
+         then MS l "" (Just Correct) nr wrong t pic
+         else MS l "" (Just $ Wrong h.calc ans) nr (h::wrong) t pic
+checkAnswer gs = {result := Just Ended} gs
 ```
 
 Next, we define the functionality used to display the game state.
@@ -308,80 +321,49 @@ top of the picture, display the next calculation, and clear
 the input text field:
 
 ```idris
--- setPic : MSF JSIO GameState ()
--- setPic =   (\gs => "background-image : url('\{gs.pic}');")
---        ^>> attributeAt_ "style" pic
---
--- dispGame : MSF JSIO GameState ()
--- dispGame =
---   fan_ [ currentCalc ^>-
---                     [ isNothing ^>- [disabledAt checkBtn, disabledAt resultIn]
---                     , maybe "" dispCalc ^>> text calc
---                     ]
---        , arrM renderGame
---        , const "" >>> Sink.valueOf resultIn
---        , setPic
---        ]
+adjST : MathEv -> MathST -> MathST
+adjST (Lang x) = {lang := x}
+adjST Check    = checkAnswer
+adjST Init     = id
+adjST (Inp s)  = {answer := s}
+
+displayST : MathST -> List (DOMUpdate MathEv)
+displayST s =
+  [ disabledM checkBtn $ currentCalc s
+  , disabledM resultIn $ currentCalc s
+  , text calc $ maybe "" dispCalc (currentCalc s)
+  , text out $ maybe "" (reply s.lang) s.result
+  , Attr pic $ style "background-image : url('\{s.pic}');"
+  , Attr out $ style (fromMaybe "" $ s.result >>= style)
+  , Render pic (dispState s)
+  ]
+
+displayEv : MathEv -> DOMUpdate MathEv
+displayEv (Lang x) = child exampleDiv (content x)
+displayEv Check    = Value resultIn ""
+displayEv Init     = child exampleDiv (content init.lang)
+displayEv (Inp _)  = NoAction
+
+display : MathEv -> MathST -> List (DOMUpdate MathEv)
+display e s = displayEv e :: displayST s
+
+export
+runMath : Has MathEv es => SHandler es -> MathEv -> MathST -> JSIO MathST
+runMath h Init s = randomGame s.lang >>= injectDOM adjST display h Init
+runMath h e    s = injectDOM adjST display h e s
 ```
 
 For checking answers entered by users, we need a stream function
 over a `StateT` transformer. The alternative would be to pair
-the input and output type of the MSF with `GameState`, and indeed
+the input and output type of the MSF with `MathST`, and indeed
 the two forms are interconvertible (see `fromState` and `toState`
 from `Data.MSF.Trans`).
-
-```idris
--- check : ST () GameState => MSF JSIO i ()
--- check =  [| checkAnswer (valueOf resultIn) (constM $ getAt ()) |]
---       >>- [ snd >>! setAt ()
---           , hd  >>> reply ^>> text out
---           , hd  >>> style ^>> attributeAt "style" out
---           ]
 ```
 
 When creating a new game, we need to make sure to take over
 the current language setting. Likewise, adjusting the language
 should overwrite the corresponding field of the game state
 and redraw the UI:
-
-```idris
--- newGame : ST () GameState => MSF JSIO i ()
--- newGame =
---       constM (getAt ())
---   >>> lang
---   ^>> randomGame
---   !>- [setPic, arrM $ setAt ()]
---
--- adjLang : Handler JSIO Ev => ST () GameState => MSF JSIO Ev ()
--- adjLang = readLang ^>> ifJust (
---             arrM $ \l => innerHtmlAt exampleDiv (content l)
---                       >> modifyAt () { lang := l }
---           )
---   where readLang : Ev -> Maybe Language
---         readLang (Lang "en") = Just EN
---         readLang (Lang "de") = Just DE
---         readLang _           = Nothing
-```
-
-We put everything together in the main controller, which
-just broadcasts the current event to the sub-controllers:
-
-```idris
--- msf : Handler JSIO Ev => ST () GameState => MSF JSIO Ev ()
--- msf =  fan_ [ ifIs NewGame newGame
---             , ifIs Check check
---             , adjLang
---             , constM (getAt ()) >>> dispGame
---             ]
---
--- export
--- ui : Handler JSIO Ev => JSIO (MSF JSIO Ev (), JSIO ())
--- ui = do
---   ini <- randomGame DE
---   _ <- mkST ini
---   innerHtmlAt exampleDiv (content DE)
---   pure (msf, pure ())
-```
 
 <!-- vi: filetype=idris2:syntax=markdown
 -->

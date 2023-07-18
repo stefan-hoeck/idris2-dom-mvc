@@ -10,14 +10,15 @@ First some imports:
 module Examples.Selector
 
 import Derive.Lens
-import public Data.List.Quantifiers.Extra
 import Examples.CSS
+import Monocle
+
+import public Data.List.Quantifiers.Extra
 import public Examples.Balls
 import public Examples.Fractals
-import Examples.MathGame
+import public Examples.MathGame
 import public Examples.Performance
 import public Examples.Reset
-import Monocle
 import public Web.MVC
 
 %default total
@@ -139,7 +140,7 @@ Enough talk, here's the code:
 ```idris
 public export
 0 Events : List Type
-Events = [String, BallsEv, FractEv, PerfEv, ResetEv]
+Events = [String, BallsEv, FractEv, PerfEv, ResetEv, MathEv]
 
 public export
 0 SelectEv : Type
@@ -148,16 +149,17 @@ SelectEv = HSum Events
 public export
 record ST where
   constructor S
-  perf   : PerfST
-  reset  : Int8
-  balls  : BallsST
-  fract  : FractST
+  perf  : PerfST
+  reset : Int8
+  balls : BallsST
+  fract : FractST
+  math  : MathST
 
 %runElab derive "ST" [Lenses]
 
 export
 init : ST
-init = S init 0 init init
+init = S init 0 init init init
 
 0 Controller : Type -> Type
 Controller e = e -> ST -> JSIO ST
@@ -167,6 +169,7 @@ runSelect h "reset"       = modifyA resetL (runReset h Init) init
 runSelect h "performance" = modifyA perfL  (runPerf h Init) init
 runSelect h "balls"       = modifyA ballsL (runBalls h Init) init
 runSelect h "fractals"    = modifyA fractL (runFract h Init) init
+runSelect h "math"        = modifyA mathL  (runMath h Init) init
 runSelect h _             = do
   updateDOM (h . inject)
     [ style appStyle allRules , child contentDiv content ]
@@ -178,10 +181,11 @@ cleanup s = liftIO (s.balls.cleanUp >> s.fract.cleanUp)
 controllers : (SelectEv -> JSIO ()) -> All Controller Events
 controllers h =
   [ \e,s => cleanup s >> runSelect h e
-  , \e => modifyA ballsL (runBalls h e)
-  , \e => modifyA fractL (runFract h e)
-  , \e => modifyA perfL  (runPerf h e)
-  , \e => modifyA resetL (runReset h e)
+  , modifyA ballsL . runBalls h
+  , modifyA fractL . runFract h
+  , modifyA perfL  . runPerf h
+  , modifyA resetL . runReset h
+  , modifyA mathL  . runMath h
   ]
 
 export

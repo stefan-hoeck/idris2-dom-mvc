@@ -9,7 +9,9 @@ import Derive.Refined
 import Examples.CSS.Fractals
 import Examples.Fractals.Dragon
 import Examples.Util
+
 import Web.MVC
+import Web.MVC.Animate
 
 %default total
 %language ElabReflection
@@ -17,8 +19,6 @@ import Web.MVC
 --------------------------------------------------------------------------------
 --          Model
 --------------------------------------------------------------------------------
-
-data Fractal = Dragon
 
 MinIter, MaxIter, MinDelay, MaxDelay : Integer
 MinIter  = 2
@@ -55,18 +55,24 @@ readDelay =
 public export
 data FractEv : Type where
   Init   : FractEv
-  Fract  : Fractal -> FractEv
   Iter   : Either String Iterations -> FractEv
   Redraw : Either String RedrawDelay -> FractEv
   Run    : FractEv
-  Inc    : FractEv
+  Inc    : DTime -> FractEv
 
 public export
 record FractST where
   constructor FS
-  fractal    : Fractal
-  iterations : Iterations
-  redraw     : RedrawDelay
+  dragons  : List String
+  itersIn  : Maybe Iterations
+  redrawIn : Maybe RedrawDelay
+  redraw   : RedrawDelay
+  dtime    : DTime
+  cleanUp  : IO ()
+
+export
+init : FractST
+init = FS [] Nothing Nothing 500 0 (pure ())
 
 --------------------------------------------------------------------------------
 --          View
@@ -87,51 +93,63 @@ content =
             , onInput (Redraw . readDelay)
             , onEnterDown Run
             , class widget
-            , placeholder "Range: [\{show MinDelay}, \{show MinDelay}]"
+            , placeholder "Range: [\{show MinDelay}, \{show MaxDelay}]"
             ] []
     , button [Id btnRun, onClick Run, classes [widget,btn]] ["Run"]
     , div [Id out] []
     ]
 
--- --------------------------------------------------------------------------------
--- --          Controller
--- --------------------------------------------------------------------------------
---
--- -- msf : (timer : RedrawDelay -> JSIO ()) -> MSF JSIO Ev ()
--- -- msf timer = drswitchWhen neutral config fractal
--- --   where fractal : Config -> MSF JSIO Ev ()
--- --         fractal c =
--- --           let Element dragons prf = mkDragons c.iterations.value
--- --            in ifIs Inc $ cycle dragons >>> innerHtml out
--- --
--- --         readAll : MSF JSIO Ev (Either String Config)
--- --         readAll =    MkConfig Dragon
--- --                 <$$> getInput Iter   read txtIter
--- --                 <**> getInput Redraw read txtRedraw
--- --                 >>>  observeWith (isLeft ^>> disabledAt btnRun)
--- --
--- --         config : MSF JSIO Ev (MSFEvent Config)
--- --         config =   fan [readAll, is Run]
--- --                >>> rightOnEvent
--- --                >>> observeWith (ifEvent $ arrM (liftJSIO . timer . redraw))
-
 --------------------------------------------------------------------------------
---          UI
+--          Controller
 --------------------------------------------------------------------------------
 
--- export
--- ui : Handler JSIO Ev => JSIO (MSF JSIO Ev (), JSIO ())
--- ui = do
---   innerHtmlAt exampleDiv content
---   ref  <- newIORef {a = Maybe IntervalID} Nothing
---
---   let cleanup : JSIO ()
---       cleanup = readIORef ref >>= traverse_ clearInterval
---
---       timer   : RedrawDelay -> JSIO ()
---       timer ra = do
---         cleanup
---         newID <- setInterval ra.value (handle Inc)
---         writeIORef ref (Just newID)
---
---   pure (msf timer, cleanup)
+rotate : List t -> List t
+rotate []     = []
+rotate (h::t) = t ++ [h]
+
+adjST : FractEv -> FractST -> FractST
+adjST Init       s = init
+adjST (Iter x)   s = {itersIn  := eitherToMaybe x} s
+adjST (Redraw x) s = {redrawIn := eitherToMaybe x} s
+adjST (Inc dt)   s =
+  let dt2 := s.dtime + dt
+   in if cast dt2 >= s.redraw.value
+         then {dtime := 0, dragons $= rotate} s
+         else {dtime := dt2} s
+adjST Run        s =
+  fromMaybe s $ do
+    i <- s.itersIn
+    r <- s.redrawIn
+    pure $
+      { redraw  := r
+      , dtime   := 0
+      , dragons := fst (mkDragons $ cast i.value)
+      } s
+
+dragonStr : List String -> String
+dragonStr (h::t) = h
+dragonStr []     = ""
+
+displayST : FractST -> List (DOMUpdate FractEv)
+displayST s =
+  [ disabled btnRun $ null s.itersIn || null s.redrawIn
+  , updateIf (s.dtime == 0) (child out . Raw $ dragonStr s.dragons)
+  ]
+
+displayEv : FractEv -> DOMUpdate FractEv
+displayEv Init       = child exampleDiv content
+displayEv (Iter x)   = validate txtIter x
+displayEv (Redraw x) = validate txtRedraw x
+displayEv Run        = NoAction
+displayEv (Inc m)    = NoAction
+
+display : FractEv -> FractST -> List (DOMUpdate FractEv)
+display e s = displayEv e :: displayST s
+
+export
+runFract : Has FractEv es => SHandler es -> FractEv -> FractST -> JSIO FractST
+runFract h Init s = do
+  s2   <- injectDOM adjST display h Init s
+  stop <- animate (h . inject . Inc)
+  pure $ {cleanUp := stop} s2
+runFract h e s = injectDOM adjST display h e s

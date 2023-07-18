@@ -33,9 +33,9 @@ import Web.MVC.Canvas
 ## Model
 
 We first define the events our application handles. Users
-chan enter a string and check it against the currect
+can enter a string and check it against the current
 calculation, they can abort and start a new game,
-and they can change the UI's language:
+and they can change the language of the user interface:
 
 ```idris
 data Language = EN | DE
@@ -85,8 +85,8 @@ The current calculation to solve, the tiles on the
 picture that have already been removed, the stuck tiles
 from wrong answers, and the picture (represented as
 the image's URL) hidden behind the tiles. In order not
-to interleave controller code (stream functions) with
-for generating new random calculations, we generate the
+to interleave controller code with
+code for generating new random calculations, we generate the
 whole game in advance, pairing calculations with the
 corresponding tiles covering the picture.
 
@@ -101,7 +101,6 @@ data Result : Type where
   Ended   : Result
   Correct : Result
   Wrong   : Calc -> Integer -> Result
-
 
 public export
 record MathST where
@@ -131,14 +130,14 @@ and cropped and scaled down to 500 x 500 pixels:
 
 ```idris
 pictures : List String
-pictures = map (\n => "pics/pic\{show n}.jpg") [the Bits8 1..11]
+pictures = map (\n => "pics/pic\{show n}.jpg") [S Z .. 11]
 ```
 
 ## View
 
 As usual, the application's CSS rules have been moved to
 a [separate module](CSS/MathGame.idr). We start with defining
-the localized strings we need:
+the localized strings we are going to need:
 
 ```idris
 style : Result -> Maybe String
@@ -293,25 +292,26 @@ randomGame l = do
   pure $ MS l "" Nothing 4 Nil ts pic
 ```
 
-For implementing the wirings of the application, we first
-note that we need to keep track of the current game's state.
-We therefore use the `StateT` monad transformer. We will see
-below, how we can easily break out of the state monad and
-convert corresponding MSFs to one, which take and yield
-an additional value.
-
 The heart of the application logic is function `checkAnswer`:
-It takes a pair of the user input and the current game state
-and returns a `Result` plus the updated state:
 
 ```idris
 checkAnswer : MathST -> MathST
-checkAnswer (MS l s _ nr wrong (h :: t) pic) =
-  let ans := cast {to = Integer} s
+checkAnswer (MS l input _ nr wrong (h :: t) pic) =
+  let ans := cast {to = Integer} input
    in if result h.calc == ans
          then MS l "" (Just Correct) nr wrong t pic
          else MS l "" (Just $ Wrong h.calc ans) nr (h::wrong) t pic
 checkAnswer gs = {result := Just Ended} gs
+```
+
+With the above, updating the application state is very easy:
+
+```idris
+adjST : MathEv -> MathST -> MathST
+adjST (Lang x) = {lang := x}
+adjST Check    = checkAnswer
+adjST MathInit = id
+adjST (Inp s)  = {answer := s}
 ```
 
 Next, we define the functionality used to display the game state.
@@ -321,20 +321,14 @@ top of the picture, display the next calculation, and clear
 the input text field:
 
 ```idris
-adjST : MathEv -> MathST -> MathST
-adjST (Lang x) = {lang := x}
-adjST Check    = checkAnswer
-adjST MathInit = id
-adjST (Inp s)  = {answer := s}
-
 displayST : MathST -> List (DOMUpdate MathEv)
 displayST s =
   [ disabledM checkBtn $ currentCalc s
   , disabledM resultIn $ currentCalc s
   , text calc $ maybe "" dispCalc (currentCalc s)
-  , text out $ maybe "" (reply s.lang) s.result
-  , attr pic $ style "background-image : url('\{s.pic}');"
-  , attr out $ style (fromMaybe "" $ s.result >>= style)
+  , text out  $ maybe "" (reply s.lang) s.result
+  , attr pic  $ style "background-image : url('\{s.pic}');"
+  , attr out  $ style (fromMaybe "" $ s.result >>= style)
   , render pic (dispState s)
   ]
 
@@ -346,23 +340,17 @@ displayEv (Inp _)  = noAction
 
 display : MathEv -> MathST -> List (DOMUpdate MathEv)
 display e s = displayEv e :: displayST s
+```
 
+The main controller is pretty simple. However, we need to generate
+an random game during initialization, so that slightly complicates things:
+
+```idris
 export
 runMath : Handler MathEv => Controller MathST MathEv
 runMath MathInit s = randomGame s.lang >>= runDOM adjST display MathInit
-runMath e    s = runDOM adjST display e s
+runMath e        s = runDOM adjST display e s
 ```
-
-For checking answers entered by users, we need a stream function
-over a `StateT` transformer. The alternative would be to pair
-the input and output type of the MSF with `MathST`, and indeed
-the two forms are interconvertible (see `fromState` and `toState`
-from `Data.MSF.Trans).
-
-When creating a new game, we need to make sure to take over
-the current language setting. Likewise, adjusting the language
-should overwrite the corresponding field of the game state
-and redraw the UI:
 
 <!-- vi: filetype=idris2:syntax=markdown
 -->

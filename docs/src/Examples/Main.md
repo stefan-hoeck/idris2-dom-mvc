@@ -36,7 +36,7 @@ This just imports and runs the user interface `ui` defined in module
 `Examples.Selector`. We will have a closer
 look at function `runMVC` once we understand the general
 structure of a dom-mvc project. Function `runJS` comes from
-the [idris2-js](https://github.com/stefan-hoeck/idris2-dom/js/)
+the [idris2-js](https://github.com/stefan-hoeck/idris2-dom/)
 library: To properly deal with the uncertainties of the
 JavaScript language, the core IO type we use most of the time
 is `JSIO`, which is an alias for `EitherT JSErr IO`, where

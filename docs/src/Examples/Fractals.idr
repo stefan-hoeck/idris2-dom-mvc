@@ -29,7 +29,7 @@ MaxDelay = 10000
 record Iterations where
   constructor I
   value : Integer
-  0 prf : FromTo MinIter MaxIter value
+  {auto 0 prf : FromTo MinIter MaxIter value}
 
 namespace Iterations
   %runElab derive "Iterations" [Show,Eq,Ord,RefinedInteger]
@@ -37,7 +37,7 @@ namespace Iterations
 record RedrawDelay where
   constructor D
   value : Integer
-  0 prf : FromTo MinDelay MaxDelay value
+  {auto 0 prf : FromTo MinDelay MaxDelay value}
 
 namespace RedrawDelay
   %runElab derive "RedrawDelay" [Show,Eq,Ord,RefinedInteger]

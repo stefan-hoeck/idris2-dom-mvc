@@ -152,8 +152,8 @@ public export
 data BallsEv : Type where
   BallsInit  : BallsEv
   Run        : BallsEv
-  NumIn : Either String Nat -> BallsEv
-  Next  : DTime -> BallsEv
+  NumIn      : Either String Nat -> BallsEv
+  Next       : DTime -> BallsEv
 
 public export
 record BallsST where

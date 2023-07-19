@@ -1,4 +1,4 @@
-module Web.MVC.Run
+module Web.MVC.Cmd
 
 import Control.Monad.Either.Extra
 import Data.List.Quantifiers.Extra
@@ -143,19 +143,23 @@ parameters {0 e    : Type}
   addNodes doc p = assert_total $ traverseList_ (addNode doc p)
 
 public export
-record DOMUpdate (e : Type) where
+record Cmd (e : Type) where
   constructor D
   run : Handler e => JSIO ()
 
+public export
+0 Cmds : Type -> Type
+Cmds = List . Cmd
+
 export %inline
-noAction : DOMUpdate e
+noAction : Cmd e
 noAction = D (pure ())
 
 setupNodes :
      (Element -> DocumentFragment -> JSIO ())
   -> Ref t
   -> List (Node e)
-  -> DOMUpdate e
+  -> Cmd e
 setupNodes adj r ns = D $ do
   doc  <- document
   elem <- castElementByRef {t = Element} r
@@ -168,47 +172,47 @@ setupNode :
      (Element -> DocumentFragment -> JSIO ())
   -> Ref t
   -> Node e
-  -> DOMUpdate e
+  -> Cmd e
 setupNode adj r n = setupNodes adj r [n]
 
 ||| Execute several DOM update instructions
 export %inline
-updateDOM : Handler e => List (DOMUpdate e) -> JSIO ()
+updateDOM : Handler e => Cmds e -> JSIO ()
 updateDOM = traverseList_ (\x => x.run)
 
 ||| Sets up the reactive behavior of the given `Node`s and
 ||| inserts them as the children of the given target.
 export %inline
-children : Ref t -> List (Node e) -> DOMUpdate e
+children : Ref t -> List (Node e) -> Cmd e
 children = setupNodes replaceChildren
 
 ||| Sets up the reactive behavior of the given `Node` and
 ||| inserts it as the only child of the given target.
 export %inline
-child : Ref t -> Node e -> DOMUpdate e
+child : Ref t -> Node e -> Cmd e
 child = setupNode replaceChildren
 
 ||| Replaces the given node's children with a text node
 ||| displaying the given string.
 export %inline
-text : Ref t -> String -> DOMUpdate e
+text : Ref t -> String -> Cmd e
 text r = child r . Text
 
 ||| Replaces the given node's children with a text node
 ||| showing the given value.
 export %inline
-show : Show b => Ref t -> b -> DOMUpdate e
+show : Show b => Ref t -> b -> Cmd e
 show r = text r . show
 
 ||| Replaces the given node's children with the raw
 ||| HTML passed as a string argument.
 export %inline
-raw : Ref t -> String -> DOMUpdate e
+raw : Ref t -> String -> Cmd e
 raw r = child r . Raw
 
 ||| Replaces the given `<style>` node's CSS rules.
 export
-style : Ref Tag.Style -> List (Rule 1) -> DOMUpdate e
+style : Ref Tag.Style -> List (Rule 1) -> Cmd e
 style r rules =
   let str := fastUnlines $ map interpolate rules
    in raw r str
@@ -216,82 +220,82 @@ style r rules =
 ||| Sets up the reactive behavior of the given `Node`s and
 ||| inserts them after the given child node.
 export %inline
-afterMany : Ref t -> List (Node e) -> DOMUpdate e
+afterMany : Ref t -> List (Node e) -> Cmd e
 afterMany = setupNodes afterDF
 
 ||| Sets up the reactive behavior of the given `Node` and
 ||| inserts it after the given child node.
 export %inline
-after : Ref t -> Node e -> DOMUpdate e
+after : Ref t -> Node e -> Cmd e
 after = setupNode afterDF
 
 ||| Sets up the reactive behavior of the given `Node`s and
 ||| inserts them before the given child node.
 export %inline
-beforeMany : Ref t -> List (Node e) -> DOMUpdate e
+beforeMany : Ref t -> List (Node e) -> Cmd e
 beforeMany = setupNodes beforeDF
 
 ||| Sets up the reactive behavior of the given `Node` and
 ||| inserts it before the given child node.
 export %inline
-before : Ref t -> Node e -> DOMUpdate e
+before : Ref t -> Node e -> Cmd e
 before = setupNode beforeDF
 
 ||| Sets up the reactive behavior of the given `Node`s and
 ||| appends them to the given element's list of children
 export %inline
-appendMany : Ref t -> List (Node e) -> DOMUpdate e
+appendMany : Ref t -> List (Node e) -> Cmd e
 appendMany = setupNodes appendDF
 
 ||| Sets up the reactive behavior of the given `Node` and
 ||| appends it to the given element's list of children
 export %inline
-append : Ref t -> Node e -> DOMUpdate e
+append : Ref t -> Node e -> Cmd e
 append = setupNode appendDF
 
 ||| Sets up the reactive behavior of the given `Node`s and
 ||| prepends them to the given element's list of children
 export %inline
-prependMany : Ref t -> List (Node e) -> DOMUpdate e
+prependMany : Ref t -> List (Node e) -> Cmd e
 prependMany = setupNodes prependDF
 
 ||| Sets up the reactive behavior of the given `Node` and
 ||| prepends it to the given element's list of children
 export %inline
-prepend : Ref t -> Node e -> DOMUpdate e
+prepend : Ref t -> Node e -> Cmd e
 prepend = setupNode prependDF
 
 ||| Sets up the reactive behavior of the given `Node`s and
 ||| replaces the given element.
 export %inline
-replaceMany : Ref t -> List (Node e) -> DOMUpdate e
+replaceMany : Ref t -> List (Node e) -> Cmd e
 replaceMany = setupNodes replaceDF
 
 ||| Sets up the reactive behavior of the given `Node` and
 ||| replaces the given element.
 export %inline
-replace : Ref t -> Node e -> DOMUpdate e
+replace : Ref t -> Node e -> Cmd e
 replace = setupNode replaceDF
 
 ||| Sets a custom validity message at the given node.
 export %inline
-validityMsg : Ref t -> ValidityTag t => String -> DOMUpdate e
+validityMsg : Ref t -> ValidityTag t => String -> Cmd e
 validityMsg r s = D $ setValidityMessage r s
 
 ||| Sets or unsets a custom validity message at the given node.
 export
-validate : Ref t -> ValidityTag t => Either String b -> DOMUpdate e
+validate : Ref t -> ValidityTag t => Either String b -> Cmd e
 validate r (Left s)  = validityMsg r s
 validate r (Right s) = validityMsg r ""
 
 ||| Sets an attribute at the given node.
 export
-attr : Ref t -> Attribute t e -> DOMUpdate e
+attr : Ref t -> Attribute t e -> Cmd e
 attr r a = D $ castElementByRef r >>= \el => setAttribute el a
 
 ||| Sets the `disabled` attribute of the given element
 export %inline
-disabled : Ref t -> Bool -> DOMUpdate e
+disabled : Ref t -> Bool -> Cmd e
 disabled r = attr r . disabled
 
 ||| Sets the `disabled` attribute of the given element
@@ -300,7 +304,7 @@ disabled r = attr r . disabled
 ||| This is useful for disabling components such as buttons
 ||| in the UI in case of invalid user input.
 export %inline
-disabledE : {0 a,b : _} -> Ref t -> Either a b -> DOMUpdate e
+disabledE : {0 a,b : _} -> Ref t -> Either a b -> Cmd e
 disabledE r = disabled r . isLeft
 
 ||| Sets the `disabled` attribute of the given element
@@ -309,31 +313,31 @@ disabledE r = disabled r . isLeft
 ||| This is useful for disabling components such as buttons
 ||| in the UI in case of invalid user input.
 export %inline
-disabledM : {0 a : _} -> Ref t -> Maybe a -> DOMUpdate e
+disabledM : {0 a : _} -> Ref t -> Maybe a -> Cmd e
 disabledM r = disabled r . isNothing
 
 ||| Removes the given element from the DOM.
 export
-remove : Ref t -> DOMUpdate e
+remove : Ref t -> Cmd e
 remove r = D (castElementByRef {t = Element} r >>= remove)
 
 ||| Sets the `value` attribute of the given element.
 export %inline
-value : Ref t -> ValueTag t => String -> DOMUpdate e
+value : Ref t -> ValueTag t => String -> Cmd e
 value r s = D (setValue r s)
 
 ||| Renders a scene at a canvas element
 export %inline
-render : Ref Tag.Canvas -> Scene -> DOMUpdate e
+render : Ref Tag.Canvas -> Scene -> Cmd e
 render r s = D (render r s)
 
 ||| Focus the given HTMLElemet
 export %inline
-focus : Ref t -> DOMUpdate e
+focus : Ref t -> Cmd e
 focus r = D (castElementByRef {t = HTMLElement} r >>= HTMLOrSVGElement.focus)
 
 export
-updateIf : Bool -> Lazy (DOMUpdate e) -> DOMUpdate e
+updateIf : Bool -> Lazy (Cmd e) -> Cmd e
 updateIf True  u = u
 updateIf False _ = noAction
 
@@ -341,7 +345,7 @@ export
 runDOM :
      {auto h : Handler e}
   -> (adjST   : e -> s -> s)
-  -> (display : e -> s -> List (DOMUpdate e))
+  -> (display : e -> s -> Cmds e)
   -> (event   : e)
   -> (state   : s)
   -> JSIO s

@@ -321,7 +321,7 @@ top of the picture, display the next calculation, and clear
 the input text field:
 
 ```idris
-displayST : MathST -> List (DOMUpdate MathEv)
+displayST : MathST -> Cmds MathEv
 displayST s =
   [ disabledM checkBtn $ currentCalc s
   , disabledM resultIn $ currentCalc s
@@ -332,13 +332,13 @@ displayST s =
   , render pic (dispState s)
   ]
 
-displayEv : MathEv -> DOMUpdate MathEv
+displayEv : MathEv -> Cmd MathEv
 displayEv (Lang x) = child exampleDiv (content x)
 displayEv Check    = value resultIn ""
 displayEv MathInit = child exampleDiv (content init.lang)
 displayEv (Inp _)  = noAction
 
-display : MathEv -> MathST -> List (DOMUpdate MathEv)
+display : MathEv -> MathST -> Cmds MathEv
 display e s = displayEv e :: displayST s
 ```
 

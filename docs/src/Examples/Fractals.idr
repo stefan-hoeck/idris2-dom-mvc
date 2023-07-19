@@ -130,20 +130,20 @@ dragonStr : List String -> String
 dragonStr (h::t) = h
 dragonStr []     = ""
 
-displayST : FractST -> List (DOMUpdate FractEv)
+displayST : FractST -> Cmds FractEv
 displayST s =
   [ disabled btnRun $ null s.itersIn || null s.redrawIn
   , updateIf (s.dtime == 0) (child out . Raw $ dragonStr s.dragons)
   ]
 
-displayEv : FractEv -> DOMUpdate FractEv
+displayEv : FractEv -> Cmd FractEv
 displayEv FractInit  = child exampleDiv content
 displayEv (Iter x)   = validate txtIter x
 displayEv (Redraw x) = validate txtRedraw x
 displayEv Run        = noAction
 displayEv (Inc m)    = noAction
 
-display : FractEv -> FractST -> List (DOMUpdate FractEv)
+display : FractEv -> FractST -> Cmds FractEv
 display e s = displayEv e :: displayST s
 
 export

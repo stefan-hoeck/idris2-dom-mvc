@@ -186,16 +186,16 @@ nor do we have redraw thousands of buttons, which would drastically
 slow down the user interface.
 
 ```idris
-displayST : PerfST -> List (DOMUpdate PerfEv)
+displayST : PerfST -> Cmds PerfEv
 displayST s = [disabledM btnRun s.num, show out s.sum]
 
-displayEv : PerfEv -> PerfST -> DOMUpdate PerfEv
+displayEv : PerfEv -> PerfST -> Cmd PerfEv
 displayEv PerfInit       _ = child exampleDiv content
 displayEv (NumChanged e) _ = validate natIn e
 displayEv (Set k)        _ = disabled (btnRef k) True
 displayEv Reload         s = maybe noAction (child buttons . btns) s.num
 
-display : PerfEv -> PerfST -> List (DOMUpdate PerfEv)
+display : PerfEv -> PerfST -> Cmds PerfEv
 display e s = displayEv e s :: displayST s
 ```
 

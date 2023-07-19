@@ -4,7 +4,7 @@ import Data.IORef
 import Data.List.Quantifiers.Extra
 
 import public JS
-import public Web.MVC.Run
+import public Web.MVC.Cmd
 import public Text.HTML
 
 ||| A controller is an effectful computation for

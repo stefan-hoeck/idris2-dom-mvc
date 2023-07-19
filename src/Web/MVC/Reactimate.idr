@@ -97,6 +97,7 @@ parameters {0 e    : Type}
     True  => setAttribute el name ""
     False => removeAttribute el name
   setAttribute el (Event ev) = registerDOMEvent (up el) ev
+  setAttribute el Empty      = pure ()
 
 
 --------------------------------------------------------------------------------

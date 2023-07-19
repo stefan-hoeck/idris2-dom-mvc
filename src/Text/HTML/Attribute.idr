@@ -79,6 +79,7 @@ data Attribute : {0 k : Type} -> (t : k) -> (event : Type) -> Type where
   Str   : (name : String) -> (value : String) -> Attribute t event
   Bool  : (name : String) -> (value : Bool) -> Attribute t event
   Event : DOMEvent event -> Attribute t event
+  Empty : Attribute t event
 
 public export
 Attributes : {0 k : _} -> (t : k) -> Type -> Type
@@ -91,6 +92,7 @@ displayAttribute (Str nm va)    = Just #"\#{nm}="\#{va}""#
 displayAttribute (Bool nm True) = Just nm
 displayAttribute (Bool _ False) = Nothing
 displayAttribute (Event _)      = Nothing
+displayAttribute Empty          = Nothing
 
 export
 displayAttributes : Attributes t ev -> String

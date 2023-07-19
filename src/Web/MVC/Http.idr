@@ -58,7 +58,6 @@ data HTTPError : Type where
   Timeout      : HTTPError
   NetworkError : HTTPError
   BadStatus    : Bits16 -> HTTPError
-  BadBody      : String -> HTTPError
   JSONError    : String -> DecodingErr -> HTTPError
 
 ||| Type of expected respons.
@@ -122,12 +121,25 @@ parameters {0 r    : Type}
     -> (timeout : Maybe Bits32)
     -> Cmd r
   request m headers url body exp tout = D $ Prelude.do
+    -- create new Http request
     x <- XMLHttpRequest.new
+
+    -- register event listeners
     XMLHttpRequestEventTarget.onerror x ?> onerror exp NetworkError
+    XMLHttpRequestEventTarget.onload x ?> onload exp x
+    XMLHttpRequestEventTarget.ontimeout x ?> onerror exp Timeout
+
+    -- open url
     open_ x (cast $ show m) url
+
+    -- set message headers
     let hs := bodyHeaders body ++ headers
     traverseList_ (\(n,h) => setRequestHeader x (cast n) (cast h)) hs
+
+    -- set timeout (if any)
     traverse_ (set (timeout x)) tout
+
+    -- send request
     xsend body x
 
 ||| Send a GET HTTP request.

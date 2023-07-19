@@ -11,12 +11,13 @@ declaring CSS rules in a type-safe manner.
 module Examples.CSS
 
 import Data.String
-import public Examples.CSS.Balls
-import public Examples.CSS.Core
-import public Examples.CSS.Fractals
-import public Examples.CSS.MathGame
-import public Examples.CSS.Performance
-import public Examples.CSS.Reset
+import Examples.CSS.Balls
+import Examples.CSS.Core
+import Examples.CSS.Fractals
+import Examples.CSS.MathGame
+import Examples.CSS.Performance
+import Examples.CSS.Reset
+import Examples.CSS.Requests
 import Text.CSS
 
 %default total
@@ -51,6 +52,7 @@ rules =
   ++ MathGame.css
   ++ Performance.css
   ++ Reset.css
+  ++ Requests.css
 ```
 
 <!-- vi: filetype=idris2:syntax=markdown

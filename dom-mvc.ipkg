@@ -5,6 +5,7 @@ brief      = "Single page web applications"
 
 depends    = base      >= 0.6.0
            , dom
+           , json-simple
            , refined
            , tailrec
 
@@ -35,6 +36,7 @@ modules    = Text.CSS
            , Web.MVC.Cmd
            , Web.MVC.Output
            , Web.MVC.Event
+           , Web.MVC.Http
 
            , Web.MVC.Canvas
            , Web.MVC.Canvas.Angle

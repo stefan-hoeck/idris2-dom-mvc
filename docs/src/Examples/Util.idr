@@ -1,7 +1,7 @@
 ||| Reocurring fragments from the example applications
 module Examples.Util
 
-import Examples.CSS
+import Examples.CSS.Core
 import Text.HTML
 
 --------------------------------------------------------------------------------

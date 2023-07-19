@@ -27,6 +27,7 @@ This project makes use of several other Idris2 projects:
 * [idris2-dom](https://github.com/stefan-hoeck/idris2-dom)
 * [idris2-refined](https://github.com/stefan-hoeck/idris2-refined)
 * [idris2-tailrec](https://github.com/stefan-hoeck/idris2-tailrec)
+* [idris2-json-simple](https://github.com/stefan-hoeck/idris2-json)
 
 It is strongly suggested to use
 a package manager like [pack](https://github.com/stefan-hoeck/idris2-pack)

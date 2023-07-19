@@ -12,6 +12,7 @@ module Examples.Selector
 import Derive.Lens
 import Derive.Finite
 import Examples.CSS
+import Examples.CSS.Core
 import Monocle
 
 import public Data.List.Quantifiers.Extra
@@ -19,6 +20,7 @@ import public Examples.Balls
 import public Examples.Fractals
 import public Examples.MathGame
 import public Examples.Performance
+import public Examples.Requests
 import public Examples.Reset
 import public Web.MVC
 
@@ -67,7 +69,7 @@ correct event value:
 
 ```idris
 public export
-data AppEv = Reset | Perf | Balls | Fract | Math
+data AppEv = Reset | Perf | Req | Balls | Fract | Math
 
 %runElab derive "AppEv" [Show,Eq,Finite]
 
@@ -80,6 +82,7 @@ Here is the layout of the main page:
 ```idris
 appName : AppEv -> String
 appName Reset = "Counting Clicks"
+appName Req   = "Processing HTTP Requests"
 appName Perf  = "Performance"
 appName Balls = "Bouncing Balls"
 appName Fract = "Fractals"
@@ -205,7 +208,7 @@ whole application:
 ||| the type of `runApp` below.
 public export
 0 Events : List Type
-Events = [BallsEv, FractEv, PerfEv, ResetEv, MathEv]
+Events = [BallsEv, FractEv, PerfEv, ResetEv, MathEv, ReqEv]
 
 ||| The full event type includes `AppEv` at the head, so we
 ||| can split it of with a simple pattern match (see `ui`).
@@ -229,12 +232,13 @@ record ST where
   balls : BallsST
   fract : FractST
   math  : MathST
+  req   : ReqST
 
 %runElab derive "ST" [Lenses]
 
 export
 init : ST
-init = S init 0 init init init
+init = S init 0 init init init RS
 ```
 
 We can now implement the main application controller. In order to
@@ -255,6 +259,7 @@ parameters {auto h : Handler FullEv}
       , modifyA perfL  . runPerf  @{inject h}
       , modifyA resetL . runReset @{inject h}
       , modifyA mathL  . runMath  @{inject h}
+      , modifyA reqL   . runReq   @{inject h}
       ]
 ```
 
@@ -286,6 +291,7 @@ matching on the `AppEv` event fired by the `<select>` element:
   changeApp Fract = runApp (inject FractInit)
   changeApp Math  = runApp (inject MathInit)
   changeApp Reset = runApp (inject ResetInit)
+  changeApp Req   = runApp (inject ReqInit)
 ```
 
 As we will see when we look at each of the example applications, every

@@ -6,10 +6,9 @@ for writing interactive single page web applications.
 Unlike the [idris2-rhone-js](https://github.com/stefan-hoeck/idris2-rhone-js)
 library, which takes a functional reactive programming approach
 to GUI programming, the concept of this library is much simpler:
-
 Events fired from user interaction update the current application
 state via pure functions, and the UI is updated according to
-the current event and updated application state. This is a similar
+the current event and new application state. This is a similar
 approach to what the [Elm programming language](https://elm-lang.org/)
 does. However, we take a more fine-grained approach to updating the DOM
 and therefore don't need an extra step via a virtual DOM, which
@@ -17,6 +16,7 @@ can be beneficial for performance.
 
 This is still very much work in progress, but I transferred the
 whole rhone-js tutorial to this library and the resulting code is
+a lot simpler compared to the one from rhone-js.
 Here's the link to the [tutorial](docs/src/Examples/Main.md).
 
 ## Dependencies

@@ -343,9 +343,9 @@ updateIf False _ = noAction
 
 export
 runDOM :
-     {auto h : Handler e}
+     {auto h : Handler e2}
   -> (adjST   : e -> s -> s)
-  -> (display : e -> s -> Cmds e)
+  -> (display : e -> s -> Cmds e2)
   -> (event   : e)
   -> (state   : s)
   -> JSIO s

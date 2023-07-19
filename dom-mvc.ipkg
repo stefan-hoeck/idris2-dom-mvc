@@ -32,9 +32,9 @@ modules    = Text.CSS
 
            , Web.MVC
            , Web.MVC.Animate
+           , Web.MVC.Cmd
            , Web.MVC.Output
            , Web.MVC.Event
-           , Web.MVC.Run
 
            , Web.MVC.Canvas
            , Web.MVC.Canvas.Angle

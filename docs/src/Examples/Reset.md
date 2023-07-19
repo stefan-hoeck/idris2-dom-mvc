@@ -108,7 +108,7 @@ the necessary updates to the DOM, that are required on
 almost every event:
 
 ```idris
-displayST : Int8 -> List (DOMUpdate ResetEv)
+displayST : Int8 -> Cmds ResetEv
 displayST n =
   [ disabled btnDec   (n <= -10)
   , disabled btnInc   (n >= 10)
@@ -124,15 +124,15 @@ on specific occasions. Here, we completely redraw the app
 on the initializing event:
 
 ```idris
-display : ResetEv -> Int8 -> List (DOMUpdate ResetEv)
+display : ResetEv -> Int8 -> Cmds ResetEv
 display ResetInit n = child exampleDiv content :: displayST n
 display (Mod f)   n = displayST n
 ```
 
-All the `DOMUpdate` actions used above are defined in module
+All the `Cmd` actions used above are defined in module
 `Web.MVC.Run`. It is pretty straight forward to define your
-own `DOMUpdate` in case some functionality is missing.
-A `DOMUpdate e` is a wrapper around `Handler e => JSIO ()`, which
+own `Cmd` in case some functionality is missing.
+A `Cmd e` is a wrapper around `Handler e => JSIO ()`, which
 allows us to implement updates to the DOM which register new
 event handlers.
 

@@ -317,7 +317,7 @@ showFPS n =
   let val := 1000 * cast fpsCount `div` n
    in "FPS: \{show val}"
 
-displayST : BallsST -> List (DOMUpdate BallsEv)
+displayST : BallsST -> Cmds BallsEv
 displayST s =
   [ disabledM btnRun s.numBalls
   , render out (ballsToScene s.balls)
@@ -330,13 +330,13 @@ event, and we update the text field's validation message upon
 user input:
 
 ```idris
-displayEv : BallsEv -> DOMUpdate BallsEv
+displayEv : BallsEv -> Cmd BallsEv
 displayEv BallsInit = child exampleDiv content
 displayEv Run       = noAction
 displayEv (NumIn x) = validate txtCount x
 displayEv (Next m)  = noAction
 
-display : BallsEv -> BallsST -> List (DOMUpdate BallsEv)
+display : BallsEv -> BallsST -> Cmds BallsEv
 display e s = displayEv e :: displayST s
 ```
 

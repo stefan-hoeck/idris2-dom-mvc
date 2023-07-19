@@ -31,7 +31,7 @@ strictGetElementById : SafeCast t => (tag,id : String) -> JSIO t
 strictGetElementById tag id = do
   Nothing <- castElementById t id | Just t => pure t
   liftJSIO $ throwError $
-    Caught "Web.MVC.Reactimate.strictGetElementById: Could not find \{tag} with id \{id}"
+    Caught "Web.MVC.Output.strictGetElementById: Could not find \{tag} with id \{id}"
 
 ||| Tries to retrieve a HTMLElement by looking
 ||| up its ID in the DOM. Unlike `getElementById`, this will throw
@@ -53,7 +53,7 @@ getElementByRef Document      = document
 getElementByRef Window        = window
 
 err : String
-err = "Web.MVC.Reactimate.castElementByRef"
+err = "Web.MVC.Output.castElementByRef"
 
 ||| Tries to retrieve an element of the given type by looking
 ||| up its ID in the DOM. Unlike `getElementById`, this will throw

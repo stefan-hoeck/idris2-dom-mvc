@@ -34,7 +34,7 @@ modules    = Text.CSS
            , Web.MVC.Animate
            , Web.MVC.Output
            , Web.MVC.Event
-           , Web.MVC.Reactimate
+           , Web.MVC.Run
 
            , Web.MVC.Canvas
            , Web.MVC.Canvas.Angle

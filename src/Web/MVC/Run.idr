@@ -1,4 +1,4 @@
-module Web.MVC.Reactimate
+module Web.MVC.Run
 
 import Control.Monad.Either.Extra
 import Data.List.Quantifiers.Extra

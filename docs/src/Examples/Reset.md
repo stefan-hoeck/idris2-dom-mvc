@@ -130,14 +130,14 @@ display (Mod f)   n = displayST n
 ```
 
 All the `DOMUpdate` actions used above are defined in module
-`Web.MVC.Reactimate`. It is pretty straight forward to define your
+`Web.MVC.Run`. It is pretty straight forward to define your
 own `DOMUpdate` in case some functionality is missing.
 A `DOMUpdate e` is a wrapper around `Handler e => JSIO ()`, which
 allows us to implement updates to the DOM which register new
 event handlers.
 
 Finally, we define the application controller by just passing
-functions `adjST` and `display` to utility `Web.MVC.Reactimate.runDOM`.
+functions `adjST` and `display` to utility `Web.MVC.Run.runDOM`.
 
 ```idris
 export

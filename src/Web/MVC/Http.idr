@@ -120,7 +120,7 @@ parameters {0 r    : Type}
     -> (expect  : Expect r)
     -> (timeout : Maybe Bits32)
     -> Cmd r
-  request m headers url body exp tout = D $ Prelude.do
+  request m headers url body exp tout = C $ Prelude.do
     -- create new Http request
     x <- XMLHttpRequest.new
 

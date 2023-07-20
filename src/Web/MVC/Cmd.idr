@@ -1,6 +1,7 @@
 module Web.MVC.Cmd
 
 import Control.Monad.Either.Extra
+import Data.Contravariant
 import Data.List.Quantifiers.Extra
 import Data.Either
 import Data.Maybe
@@ -26,6 +27,10 @@ record Handler (e : Type) where
   [noHints]
   constructor H
   handle_ : e -> JSIO ()
+
+export %inline
+Contravariant Handler where
+  contramap f (H h) = H (h . f)
 
 export %inline
 handle : Handler e => e -> JSIO ()
@@ -144,8 +149,12 @@ parameters {0 e    : Type}
 
 public export
 record Cmd (e : Type) where
-  constructor D
+  constructor C
   run : Handler e => JSIO ()
+
+export %inline
+Functor Cmd where
+  map f (C run) = C $ run @{contramap f %search}
 
 public export
 0 Cmds : Type -> Type
@@ -153,14 +162,14 @@ Cmds = List . Cmd
 
 export %inline
 noAction : Cmd e
-noAction = D (pure ())
+noAction = C (pure ())
 
 setupNodes :
      (Element -> DocumentFragment -> JSIO ())
   -> Ref t
   -> List (Node e)
   -> Cmd e
-setupNodes adj r ns = D $ do
+setupNodes adj r ns = C $ do
   doc  <- document
   elem <- castElementByRef {t = Element} r
   df   <- createDocumentFragment doc
@@ -280,7 +289,7 @@ replace = setupNode replaceDF
 ||| Sets a custom validity message at the given node.
 export %inline
 validityMsg : Ref t -> ValidityTag t => String -> Cmd e
-validityMsg r s = D $ setValidityMessage r s
+validityMsg r s = C $ setValidityMessage r s
 
 ||| Sets or unsets a custom validity message at the given node.
 export
@@ -291,7 +300,7 @@ validate r (Right s) = validityMsg r ""
 ||| Sets an attribute at the given node.
 export
 attr : Ref t -> Attribute t e -> Cmd e
-attr r a = D $ castElementByRef r >>= \el => setAttribute el a
+attr r a = C $ castElementByRef r >>= \el => setAttribute el a
 
 ||| Sets the `disabled` attribute of the given element
 export %inline
@@ -319,22 +328,22 @@ disabledM r = disabled r . isNothing
 ||| Removes the given element from the DOM.
 export
 remove : Ref t -> Cmd e
-remove r = D (castElementByRef {t = Element} r >>= remove)
+remove r = C (castElementByRef {t = Element} r >>= remove)
 
 ||| Sets the `value` attribute of the given element.
 export %inline
 value : Ref t -> ValueTag t => String -> Cmd e
-value r s = D (setValue r s)
+value r s = C (setValue r s)
 
 ||| Renders a scene at a canvas element
 export %inline
 render : Ref Tag.Canvas -> Scene -> Cmd e
-render r s = D (render r s)
+render r s = C (render r s)
 
 ||| Focus the given HTMLElemet
 export %inline
 focus : Ref t -> Cmd e
-focus r = D (castElementByRef {t = HTMLElement} r >>= HTMLOrSVGElement.focus)
+focus r = C (castElementByRef {t = HTMLElement} r >>= HTMLOrSVGElement.focus)
 
 export
 updateIf : Bool -> Lazy (Cmd e) -> Cmd e

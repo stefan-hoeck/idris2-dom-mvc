@@ -79,6 +79,7 @@ parameters {0 e    : Type}
     MouseOut f   => inst "mouseout" mouseInfo f
     MouseMove f  => inst "mousemove" mouseInfo f
     HashChange v => inst "hashchange" {t = Event} (const $ pure v) Just
+    Wheel f      => inst "wheel" wheelInfo f
 
     where
       inst :

@@ -29,6 +29,7 @@ modules    = Text.CSS
            , Text.HTML.Event
            , Text.HTML.Node
            , Text.HTML.Ref
+           , Text.HTML.Select
            , Text.HTML.Tag
 
            , Web.MVC

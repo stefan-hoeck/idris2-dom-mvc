@@ -109,12 +109,6 @@ parameters {0 e    : Type}
 --          Node Preparation
 --------------------------------------------------------------------------------
 
-  createNode : Document -> String -> List (Attribute t e) -> JSIO Element
-  createNode doc str xs = do
-    el <- createElement doc str
-    traverseList_ (setAttribute el) xs
-    pure el
-
   addNodes :
        {auto 0 _ : JSType t}
     -> {auto 0 _ : Elem ParentNode (Types t)}
@@ -131,9 +125,11 @@ parameters {0 e    : Type}
     -> (node     : Node e)
     -> JSIO ()
   addNode doc p (El {tag} _ xs ys) = do
-    n <- createNode doc tag xs
+    n <- createElement doc tag
     append p [inject $ n :> Node]
     addNodes doc n ys
+    traverseList_ (setAttribute n) xs
+
   addNode doc p (Raw str) = do
     el <- createElement doc "template"
     Just temp <- pure (castTo HTMLTemplateElement el) | Nothing => pure ()

@@ -14,6 +14,7 @@ import Derive.Finite
 import Examples.CSS
 import Examples.CSS.Core
 import Monocle
+import Text.HTML.Select
 
 import public Data.List.Quantifiers.Extra
 import public Examples.Balls
@@ -69,18 +70,18 @@ correct event value:
 
 ```idris
 public export
-data AppEv = Reset | Perf | Req | Balls | Fract | Math
+data App = Reset | Perf | Req | Balls | Fract | Math
 
-%runElab derive "AppEv" [Show,Eq,Finite]
+%runElab derive "App" [Show,Eq,Finite]
 
-toApp : String -> AppEv
+toApp : String -> App
 toApp s = fromMaybe Reset $ find ((s ==) . show) values
 ```
 
 Here is the layout of the main page:
 
 ```idris
-appName : AppEv -> String
+appName : App -> String
 appName Reset = "Counting Clicks"
 appName Req   = "Processing HTTP Requests"
 appName Perf  = "Performance"
@@ -88,18 +89,14 @@ appName Balls = "Bouncing Balls"
 appName Fract = "Fractals"
 appName Math  = "Math Game"
 
-opt : AppEv -> Node AppEv
-opt v = option [value (show v), selected (v==Reset)] [Text $ appName v]
-
-content : Node AppEv
-content =
+content : App -> Node App
+content ini =
   div [ class contentList ]
       [ div [class pageTitle] ["dom-mvc: Examples"]
       , div [class contentHeader]
           [ label [class widgetLabel] ["Choose an Example"]
-          , select
+          , selectFromList values (Just ini) appName id
               [classes [widget, selectIn, exampleSelector], onChange toApp]
-              (map opt values)
           ]
       , div [Id exampleDiv] []
       ]
@@ -110,7 +107,7 @@ two arguments: A list of attributes and a list of child
 nodes. We use these to describe the tree structure of a HTML page.
 This works very well, as the code is typically quite readable, while
 we still have the power of Idris at hand: The options of the select
-element come from applying function `opt` to all `AppEv` values.
+element come from applying function `opt` to all `App` values.
 (Function `values` comes from interface `Data.Finite.Finite` from the
 finite library.)
 
@@ -143,7 +140,7 @@ only part of the main web page that is not static.
 Finally, we also encode the events an element fires in the `Node`
 type, and that's what `Node`'s parameter stands for. Events are
 just attributes, and in the example above, the `select` element
-fires an `AppEv` event whenever the user changes the selected value
+fires an `App` event whenever the user changes the selected value
 (`onChange toApp`).
 
 ## The Interactive Part: Handling Events
@@ -199,22 +196,22 @@ the components described above.
 
 First, we define the event type. Our main application consists of a selection
 of several unrelated example apps, each with its own state and
-event type. We collect all event types plus our own `AppEv` in
+event type. We collect all event types plus our own `App` in
 a heterogeneous sum, and use this as the main event type of the
 whole application:
 
 ```idris
-||| We don't include `AppEv` here, because we need this list in
+||| We don't include `App` here, because we need this list in
 ||| the type of `runApp` below.
 public export
 0 Events : List Type
 Events = [BallsEv, FractEv, PerfEv, ResetEv, MathEv, ReqEv]
 
-||| The full event type includes `AppEv` at the head, so we
+||| The full event type includes `App` at the head, so we
 ||| can split it of with a simple pattern match (see `ui`).
 public export
 0 FullEv : Type
-FullEv = HSum (AppEv :: Events)
+FullEv = HSum (App :: Events)
 ```
 
 Likewise, we use a record type listing the states of the different
@@ -264,7 +261,7 @@ parameters {auto h : Handler FullEv}
 ```
 
 Function `runApp` only handles the events from example applications
-but not the `AppEv` event from the main `<select>` element. We handle
+but not the `App` event from the main `<select>` element. We handle
 that one in two functions: First, when we change the example application,
 we have to cleanup some stuff first: Some applications use animations,
 and we'd like to stop those before starting a new app. Cleanup
@@ -274,18 +271,19 @@ We also reset the main view, to make sure all traces from previous
 applications are properly removed:
 
 ```idris
-  cleanup : ST -> JSIO ST
-  cleanup s = do
+  cleanup : App -> ST -> JSIO ST
+  cleanup x s = do
     liftIO (s.balls.cleanUp >> s.fract.cleanUp)
-    updateDOM @{inject h} [style appStyle rules, child contentDiv content]
+    putStrLn "Changing app to \{show x}"
+    updateDOM @{inject h} [style appStyle rules, child contentDiv $ content x]
     pure init
 ```
 
 In a second step, we choose the example app to start by pattern
-matching on the `AppEv` event fired by the `<select>` element:
+matching on the `App` event fired by the `<select>` element:
 
 ```idris
-  changeApp : Controller ST AppEv
+  changeApp : Controller ST App
   changeApp Perf  = runApp (inject PerfInit)
   changeApp Balls = runApp (inject BallsInit)
   changeApp Fract = runApp (inject FractInit)
@@ -299,14 +297,14 @@ one of them sets up its own HTML nodes upon receiving its `Init` event.
 
 To sum it all up, and to define function `ui`, which is directly invoked
 by function `main`, we just pattern match on the event we get. If it's
-an `AppEv` signalling that the user wants to try a different example
+an `App` signalling that the user wants to try a different example
 app, we cleanup and switch applications. If it's coming from a running
 application, however, we just pass it on to `runApp`.
 
 ```idris
   export
   ui : Controller ST FullEv
-  ui (Here x)  s = cleanup s >>= changeApp x
+  ui (Here x)  s = cleanup x s >>= changeApp x
   ui (There x) s = runApp x s
 ```
 

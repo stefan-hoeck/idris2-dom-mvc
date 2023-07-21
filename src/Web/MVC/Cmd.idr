@@ -40,6 +40,14 @@ export %inline
 inject : Has e es => Handler (HSum es) -> Handler e
 inject (H h) = H (h . inject)
 
+export
+Semigroup (Handler e) where
+  H f <+> H g = H $ \v => f v >> g v
+
+export
+Monoid (Handler e) where
+  neutral = H $ \_ => pure ()
+
 --------------------------------------------------------------------------------
 --          Registering Events
 --------------------------------------------------------------------------------
@@ -151,6 +159,14 @@ record Cmd (e : Type) where
 export %inline
 Functor Cmd where
   map f (C run) = C $ run @{contramap f %search}
+
+export
+Semigroup (Cmd e) where
+  C f <+> C g = C $ f >> g
+
+export
+Monoid (Cmd e) where
+  neutral = C $ pure ()
 
 public export
 0 Cmds : Type -> Type

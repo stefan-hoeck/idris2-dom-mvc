@@ -29,7 +29,7 @@ import Examples.Selector
 
 covering
 main : IO ()
-main = runJS $ runMVC (inject Reset) init ui
+main = runJS $ runController (inject Reset) init ui
 ```
 
 This just imports and runs the user interface `ui` defined in module

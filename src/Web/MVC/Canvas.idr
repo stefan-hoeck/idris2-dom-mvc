@@ -14,6 +14,14 @@ import public Web.MVC.Canvas.Transformation
 
 %default total
 
+||| Canvas dimensions
+public export
+record CDims where
+  [noHints]
+  constructor CD
+  cwidth  : Double
+  cheight : Double
+
 export
 context2D : HTMLCanvasElement -> JSIO CanvasRenderingContext2D
 context2D canvas = do
@@ -23,11 +31,11 @@ context2D canvas = do
     Nothing => throwError $ Caught "Web.MVC.Canvas.context2d: No rendering context for canvas"
 
 export
-render : Ref Canvas -> Scene -> JSIO ()
+render : Ref Canvas -> (CDims => Scene) -> JSIO ()
 render ref scene = do
   canvas <- castElementByRef {t = HTMLCanvasElement} ref
   ctxt   <- context2D canvas
-  w      <- get canvas width
-  h      <- get canvas height
-  apply ctxt $ Rect 0 0 (cast w) (cast h) Clear
-  apply ctxt scene
+  w      <- cast <$> get canvas width
+  h      <- cast <$> get canvas height
+  apply ctxt $ Rect 0 0 w h Clear
+  apply ctxt (scene @{CD w h})

@@ -23,6 +23,14 @@ record CDims where
   cheight : Double
 
 export
+cdims : Ref Canvas -> JSIO CDims
+cdims r = do
+  canvas <- castElementByRef {t = HTMLCanvasElement} r
+  w      <- cast <$> get canvas width
+  h      <- cast <$> get canvas height
+  pure $ CD w h
+
+export
 context2D : HTMLCanvasElement -> JSIO CanvasRenderingContext2D
 context2D canvas = do
   m      <- getContext canvas "2d"

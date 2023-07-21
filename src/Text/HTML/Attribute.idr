@@ -359,6 +359,10 @@ onChange : (String -> ev) -> Attribute t ev
 onChange f = Event . Change $ Just . f . value
 
 export
+onChangeMaybe : (String -> Maybe ev) -> Attribute t ev
+onChangeMaybe f = Event . Change $ f . value
+
+export
 onChecked : (Bool -> ev) -> Attribute t ev
 onChecked f = Event . Change $ Just . f . checked
 

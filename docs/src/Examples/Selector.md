@@ -149,10 +149,10 @@ Now that we have the structure of our web page specified, we
 can have a quick look at how we define its interactive behavior.
 
 The core function used for this (which is used in our application's
-`main` function) is `Web.MVC.runMVC`. Here's its type
+`main` function) is `Web.MVC.runController`. Here's its type
 
 ```haskell
-runMVC :
+runController :
      {0 e,s  : Type}
   -> (initEv : e)
   -> (initST : s)
@@ -168,7 +168,7 @@ we fire when starting the application.
 Non-trivial web pages are stateful: An event modifies the application
 state (for instance, by increasing a counter when a button is clicked)
 and the new state is used to update what we see in the user interface.
-The state type in `runMVC` is represented by parameter `s`, and `initST`
+The state type in `runController` is represented by parameter `s`, and `initST`
 is the initial application state.
 
 Finally, we need a way to update and display the state when an event

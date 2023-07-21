@@ -60,3 +60,12 @@ changeInfo e =
   [| MkInputInfo
        (primIO (prim__input e))
        ((1 ==) <$> primIO (prim__checked e)) |]
+
+export
+wheelInfo : WheelEvent -> JSIO WheelInfo
+wheelInfo e =
+  [| MkWheelInfo
+     (deltaMode e)
+     (deltaX e)
+     (deltaY e)
+     (deltaZ e) |]

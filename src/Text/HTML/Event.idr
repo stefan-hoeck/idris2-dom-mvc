@@ -9,6 +9,14 @@ import Data.Maybe
 --------------------------------------------------------------------------------
 
 public export
+record WheelInfo where
+  constructor MkWheelInfo
+  deltaMode : Bits32
+  deltaX    : Double
+  deltaY    : Double
+  deltaZ    : Double
+
+public export
 record MouseInfo where
   constructor MkMouseInfo
   -- buttons
@@ -85,3 +93,6 @@ data DOMEvent : Type -> Type where
 
   -- Routing
   HashChange : a -> DOMEvent a
+
+  -- Wheel
+  Wheel      : (WheelInfo -> Maybe a) -> DOMEvent a

@@ -350,8 +350,13 @@ value r s = C (setValue r s)
 
 ||| Renders a scene at a canvas element
 export %inline
+renderWithDims : Ref Tag.Canvas -> (CanvasDims -> Scene) -> Cmd e
+renderWithDims r s = C (render r s)
+
+||| Renders a scene at a canvas element
+export %inline
 render : Ref Tag.Canvas -> Scene -> Cmd e
-render r s = C (render r s)
+render r = renderWithDims r . const
 
 ||| Focus the given HTMLElemet
 export %inline

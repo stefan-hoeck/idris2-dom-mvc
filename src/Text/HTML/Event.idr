@@ -96,4 +96,3 @@ data DOMEvent : Type -> Type where
 
   -- Wheel
   Wheel      : (WheelInfo -> Maybe a) -> DOMEvent a
-  LocalWheel : (WheelInfo -> Maybe a) -> DOMEvent a

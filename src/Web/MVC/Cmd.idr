@@ -61,8 +61,12 @@ parameters {0 e    : Type}
   ||| Use this, for instance, to register `DOMEvents` at
   ||| a HTMLElement of a static document.
   export
-  registerDOMEvent : EventTarget -> DOMEvent e -> JSIO ()
-  registerDOMEvent el de = case de of
+  registerDOMEvent :
+       (preventDefault, stopPropagation : Bool)
+    -> EventTarget
+    -> DOMEvent e
+    -> JSIO ()
+  registerDOMEvent prev stop el de = case de of
     Input f      => inst "input" inputInfo f
     Change f     => inst "change" changeInfo f
     Click f      => inst "click" mouseInfo f
@@ -80,14 +84,6 @@ parameters {0 e    : Type}
     MouseMove f  => inst "mousemove" mouseInfo f
     HashChange v => inst "hashchange" {t = Event} (const $ pure v) Just
     Wheel f      => inst "wheel" wheelInfo f
-    LocalWheel f => do
-        c <- callback {cb = EventListener} $ \e => do
-          cn <- cancelable e
-          when cn (preventDefault e)
-          va <- tryCast_ WheelEvent "Web.MVC.Cmd.inst" e
-          wheelInfo va >>= maybe (pure ()) handle . f
-
-        addEventListener el "wheel" (Just c)
 
     where
       inst :
@@ -99,17 +95,14 @@ parameters {0 e    : Type}
         -> JSIO ()
       inst {t} s conv f = do
         c <- callback {cb = EventListener} $ \e => do
+          canc <- cancelable e
+          bubl <- bubbles e
+          when (canc && prev) (preventDefault e)
+          when (bubl && stop) (stopPropagation e)
           va <- tryCast_ t "Web.MVC.Cmd.inst" e
           conv va >>= maybe (pure ()) handle . f
 
         addEventListener el s (Just c)
-
-  ||| Manually register an event handler at the given element
-  export
-  handleEvent : Ref t -> DOMEvent e -> JSIO ()
-  handleEvent r de = do
-    el  <- castElementByRef r
-    registerDOMEvent el de
 
   export
   setAttribute : Element -> Attribute t e -> JSIO ()
@@ -118,7 +111,7 @@ parameters {0 e    : Type}
   setAttribute el (Bool name value) = case value of
     True  => setAttribute el name ""
     False => removeAttribute el name
-  setAttribute el (Event ev) = registerDOMEvent (up el) ev
+  setAttribute el (Event_ prev stop ev) = registerDOMEvent prev stop(up el) ev
   setAttribute el Empty      = pure ()
 
 

@@ -80,6 +80,14 @@ parameters {0 e    : Type}
     MouseMove f  => inst "mousemove" mouseInfo f
     HashChange v => inst "hashchange" {t = Event} (const $ pure v) Just
     Wheel f      => inst "wheel" wheelInfo f
+    LocalWheel f => do
+        c <- callback {cb = EventListener} $ \e => do
+          cn <- cancelable e
+          when cn (preventDefault e)
+          va <- tryCast_ WheelEvent "Web.MVC.Cmd.inst" e
+          wheelInfo va >>= maybe (pure ()) handle . f
+
+        addEventListener el "wheel" (Just c)
 
     where
       inst :
@@ -91,7 +99,7 @@ parameters {0 e    : Type}
         -> JSIO ()
       inst {t} s conv f = do
         c <- callback {cb = EventListener} $ \e => do
-          va <- tryCast_ t "Control.Monad.Dom.Interface.inst" e
+          va <- tryCast_ t "Web.MVC.Cmd.inst" e
           conv va >>= maybe (pure ()) handle . f
 
         addEventListener el s (Just c)

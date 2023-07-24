@@ -75,15 +75,22 @@ Show InputType where
 ||| be later used to retrieve an element from the DOM) in a HTML node.
 public export
 data Attribute : {0 k : Type} -> (t : k) -> (event : Type) -> Type where
-  Id    : {0 t : HTMLTag s} -> Ref t -> Attribute t event
-  Str   : (name : String) -> (value : String) -> Attribute t event
-  Bool  : (name : String) -> (value : Bool) -> Attribute t event
-  Event : DOMEvent event -> Attribute t event
-  Empty : Attribute t event
+  Id     : {0 t : HTMLTag s} -> Ref t -> Attribute t event
+  Str    : (name : String) -> (value : String) -> Attribute t event
+  Bool   : (name : String) -> (value : Bool) -> Attribute t event
+  Event_ :
+       (preventDefault, stopPropagation : Bool)
+    -> DOMEvent event
+    -> Attribute t event
+  Empty  : Attribute t event
 
 public export
 Attributes : {0 k : _} -> (t : k) -> Type -> Type
 Attributes t e = List (Attribute t e)
+
+export %inline
+Event : DOMEvent ev -> Attribute t ev
+Event = Event_ False False
 
 export
 displayAttribute : Attribute t ev -> Maybe String
@@ -91,7 +98,7 @@ displayAttribute (Id (Id va))   = Just #"id="\#{va}""#
 displayAttribute (Str nm va)    = Just #"\#{nm}="\#{va}""#
 displayAttribute (Bool nm True) = Just nm
 displayAttribute (Bool _ False) = Nothing
-displayAttribute (Event _)      = Nothing
+displayAttribute (Event_ _ _ _) = Nothing
 displayAttribute Empty          = Nothing
 
 export

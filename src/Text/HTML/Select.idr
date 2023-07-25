@@ -40,8 +40,8 @@ selectFromListBy vs sel disp toEv attrs =
     (attrs ++ [onChangeMaybe (map toEv . ix vs . cast)])
     (opt sel disp <$> zip [0 .. pred (length vs)] vs)
 
-||| Create a `<select>` element displaying the options in the given
-||| list.
+||| Like `selectFromListBy` but uses an optional initial value
+||| to determine the initially selected value.
 |||
 ||| @values  : the list of options
 ||| @init    : the initially selected option (if any)

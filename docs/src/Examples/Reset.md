@@ -98,6 +98,7 @@ application: First, one for adjusting the application state
 according to the current event.
 
 ```idris
+export
 adjST : ResetEv -> Int8 -> Int8
 adjST ResetInit n = 0
 adjST (Mod f) n = f n
@@ -124,6 +125,7 @@ on specific occasions. Here, we completely redraw the app
 on the initializing event:
 
 ```idris
+export
 display : ResetEv -> Int8 -> Cmds ResetEv
 display ResetInit n = child exampleDiv content :: displayST n
 display (Mod f)   n = displayST n
@@ -135,15 +137,6 @@ own `Cmd` in case some functionality is missing.
 A `Cmd e` is a wrapper around `Handler e => JSIO ()`, which
 allows us to implement updates to the DOM which register new
 event handlers.
-
-Finally, we define the application controller by just passing
-functions `adjST` and `display` to utility `Web.MVC.Run.runDOM`.
-
-```idris
-export
-runReset : Handler ResetEv => Controller Int8 ResetEv
-runReset = runDOM adjST display
-```
 
 <!-- vi: filetype=idris2:syntax=markdown
 -->

@@ -25,11 +25,12 @@ the code:
 ```idris
 module Examples.Main
 
+import JS
 import Examples.Selector
 
 covering
 main : IO ()
-main = runJS $ runController (inject Reset) init ui
+main = runJS ui
 ```
 
 This just imports and runs the user interface `ui` defined in module

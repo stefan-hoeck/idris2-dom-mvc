@@ -9,21 +9,20 @@ First some imports:
 ```idris
 module Examples.Selector
 
-import Derive.Lens
+import Data.IORef
 import Derive.Finite
 import Examples.CSS
 import Examples.CSS.Core
-import Monocle
 import Text.HTML.Select
 
-import public Data.List.Quantifiers.Extra
-import public Examples.Balls
-import public Examples.Fractals
-import public Examples.MathGame
-import public Examples.Performance
-import public Examples.Requests
-import public Examples.Reset
-import public Web.MVC
+import Examples.Balls
+import Examples.Fractals
+import Examples.MathGame
+import Examples.Performance
+import Examples.Requests
+import Examples.Reset
+import Web.MVC
+import Web.MVC.Animate
 
 %default total
 %language ElabReflection
@@ -201,17 +200,15 @@ a heterogeneous sum, and use this as the main event type of the
 whole application:
 
 ```idris
-||| We don't include `App` here, because we need this list in
-||| the type of `runApp` below.
 public export
-0 Events : List Type
-Events = [BallsEv, FractEv, PerfEv, ResetEv, MathEv, ReqEv]
-
-||| The full event type includes `App` at the head, so we
-||| can split it of with a simple pattern match (see `ui`).
-public export
-0 FullEv : Type
-FullEv = HSum (App :: Events)
+data Event : Type where
+  ChangeApp : App -> Event
+  EBalls    : BallsEv -> Event
+  EFract    : FractEv -> Event
+  EPerf     : PerfEv  -> Event
+  EReset    : ResetEv -> Event
+  EMath     : MathEv  -> Event
+  EReq      : ReqEv   -> Event
 ```
 
 Likewise, we use a record type listing the states of the different
@@ -224,18 +221,15 @@ which just lists the initial state of each example application.
 public export
 record ST where
   constructor S
-  perf  : PerfST
-  reset : Int8
-  balls : BallsST
-  fract : FractST
-  math  : MathST
-  req   : ReqST
-
-%runElab derive "ST" [Lenses]
+  perf    : PerfST
+  reset   : Int8
+  balls   : BallsST
+  fract   : FractST
+  math    : MathST
 
 export
 init : ST
-init = S init 0 init init init RS
+init = S init 0 init init init
 ```
 
 We can now implement the main application controller. In order to
@@ -246,18 +240,14 @@ are going to need access to the main event handler, so we pass it via
 a `parameters` block:
 
 ```idris
-parameters {auto h : Handler FullEv}
-
-  runApp : Controller ST (HSum Events)
-  runApp =
-    controlMany
-      [ modifyA ballsL . runBalls @{inject h}
-      , modifyA fractL . runFract @{inject h}
-      , modifyA perfL  . runPerf  @{inject h}
-      , modifyA resetL . runReset @{inject h}
-      , modifyA mathL  . runMath  @{inject h}
-      , modifyA reqL   . runReq   @{inject h}
-      ]
+adjST : Event -> ST -> ST
+adjST (ChangeApp x) s = init
+adjST (EBalls x)    s = {balls $= adjST x} s
+adjST (EFract x)    s = {fract $= adjST x} s
+adjST (EPerf x)     s = {perf  $= adjST x} s
+adjST (EReset x)    s = {reset $= adjST x} s
+adjST (EMath x)     s = {math  $= adjST x} s
+adjST (EReq x)      s = s
 ```
 
 Function `runApp` only handles the events from example applications
@@ -270,26 +260,41 @@ hooks are stored in the corresponding application states.
 We also reset the main view, to make sure all traces from previous
 applications are properly removed:
 
-```idris
-  cleanup : App -> ST -> JSIO ST
-  cleanup x s = do
-    liftIO (s.balls.cleanUp >> s.fract.cleanUp)
-    putStrLn "Changing app to \{show x}"
-    updateDOM @{inject h} [style appStyle rules, child contentDiv $ content x]
-    pure init
-```
-
 In a second step, we choose the example app to start by pattern
 matching on the `App` event fired by the `<select>` element:
 
 ```idris
-  changeApp : Controller ST App
-  changeApp Perf  = runApp (inject PerfInit)
-  changeApp Balls = runApp (inject BallsInit)
-  changeApp Fract = runApp (inject FractInit)
-  changeApp Math  = runApp (inject MathInit)
-  changeApp Reset = runApp (inject ResetInit)
-  changeApp Req   = runApp (inject ReqInit)
+toInit : App -> Event
+toInit Reset = EReset ResetInit
+toInit Perf  = EPerf PerfInit
+toInit Req   = EReq ReqInit
+toInit Balls = EBalls BallsInit
+toInit Fract = EFract FractInit
+toInit Math  = EMath MathInit
+
+switch : Handler Event => App -> IORef (IO ()) -> JSIO ()
+switch x ref = do
+  cu     <- readIORef ref
+  liftIO cu
+  cu_new <- case x of
+    Balls => animate (handle . EBalls . Next)
+    Fract => animate (handle . EFract . Inc)
+    _     => pure (pure ())
+  writeIORef ref cu_new
+  handle (toInit x)
+
+covering
+displayEv : IORef (IO ()) -> Event -> ST -> Cmds Event
+displayEv ref (ChangeApp x) s = [ style appStyle rules
+                                , ChangeApp <$> child contentDiv (content x)
+                                , C $ switch x ref
+                                ]
+displayEv ref (EBalls x)    s = map EBalls <$> display x s.balls
+displayEv ref (EFract x)    s = map EFract <$> display x s.fract
+displayEv ref (EPerf x)     s = map EPerf  <$> display x s.perf
+displayEv ref (EReset x)    s = map EReset <$> display x s.reset
+displayEv ref (EMath x)     s = map EMath  <$> display x s.math
+displayEv ref (EReq x)      s = map EReq   <$> display x
 ```
 
 As we will see when we look at each of the example applications, every
@@ -302,10 +307,11 @@ app, we cleanup and switch applications. If it's coming from a running
 application, however, we just pass it on to `runApp`.
 
 ```idris
-  export
-  ui : Controller ST FullEv
-  ui (Here x)  s = cleanup x s >>= changeApp x
-  ui (There x) s = runApp x s
+export covering
+ui : JSIO ()
+ui = do
+  ref <- newIORef {a = IO ()} (pure ())
+  runMVC adjST (displayEv ref) (ChangeApp Reset) init
 ```
 
 ## Comparison with other MVC Libraries

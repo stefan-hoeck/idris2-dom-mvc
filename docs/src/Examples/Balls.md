@@ -123,14 +123,13 @@ record BallsST where
   count    : Nat
   dtime    : DTime
   numBalls : Maybe NumBalls
-  cleanUp  : IO ()
 
 fpsCount : Nat
 fpsCount = 15
 
 export
 init : BallsST
-init = BS [] fpsCount 0 Nothing (pure ())
+init = BS [] fpsCount 0 Nothing
 
 read : String -> Either String NumBalls
 read =
@@ -298,11 +297,12 @@ Adjusting the state involves some fiddling with the FPS counter.
 The rest is pretty straight forward:
 
 ```idris
+export
 adjST : BallsEv -> BallsST -> BallsST
-adjST BallsInit _ = init
-adjST Run       s = {balls := maybe s.balls initialBalls s.numBalls} s
-adjST (NumIn x) s = {numBalls := eitherToMaybe x} s
-adjST (Next m)  s = case s.count of
+adjST BallsInit       s = init
+adjST Run             s = {balls := maybe s.balls initialBalls s.numBalls} s
+adjST (NumIn x)       s = {numBalls := eitherToMaybe x} s
+adjST (Next m)        s = case s.count of
   0   => { balls $= map (nextBall m), dtime := 0, count := fpsCount } s
   S k => { balls $= map (nextBall m), dtime $= (+m), count := k } s
 ```
@@ -331,11 +331,12 @@ user input:
 
 ```idris
 displayEv : BallsEv -> Cmd BallsEv
-displayEv BallsInit = child exampleDiv content
-displayEv Run       = noAction
-displayEv (NumIn x) = validate txtCount x
-displayEv (Next m)  = noAction
+displayEv BallsInit  = child exampleDiv content
+displayEv Run        = noAction
+displayEv (NumIn x)  = validate txtCount x
+displayEv (Next m)   = noAction
 
+export
 display : BallsEv -> BallsST -> Cmds BallsEv
 display e s = displayEv e :: displayST s
 ```
@@ -345,15 +346,6 @@ by registering an event handler upon initialization.
 Function `Web.MVC.Animate.animate` will respond with a
 cleanup hook, which we put in the `cleanUp` field of the
 application state.
-
-```idris
-export
-runBalls : Handler BallsEv => Controller BallsST BallsEv
-runBalls BallsInit s = do
-  s2   <- runDOM adjST display BallsInit s -- setup HTML part of UI
-  stop <- animate (handle . Next)          -- start animation
-  pure $ {cleanUp := stop} s2              -- register cleanup hook
-runBalls e s = runDOM adjST display e s
 ```
 
 <!-- vi: filetype=idris2:syntax=markdown

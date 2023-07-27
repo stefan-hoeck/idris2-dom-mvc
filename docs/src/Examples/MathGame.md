@@ -41,17 +41,6 @@ and they can change the language of the user interface:
 data Language = EN | DE
 
 %runElab derive "Language" [Eq]
-
-public export
-data MathEv : Type where
-  Lang     : Language -> MathEv
-  Check    : MathEv
-  MathInit : MathEv
-  Inp      : String -> MathEv
-
-lang : String -> MathEv
-lang "de" = Lang DE
-lang _    = Lang EN
 ```
 
 We also need data types for representing the calculations
@@ -67,6 +56,12 @@ record Calc where
   y  : Integer
   op : Op
 
+record Tile where
+  constructor MkTile
+  posX    : Bits8
+  posY    : Bits8
+  calc    : Calc
+
 result : Calc -> Integer
 result (MkCalc x y Plus)  = x + y
 result (MkCalc x y Minus) = x - y
@@ -78,6 +73,18 @@ dispCalc (MkCalc x y op) = "\{show x} \{dispOp op} \{show y} = "
         dispOp Plus  = "+"
         dispOp Minus = "-"
         dispOp Mult  = "*"
+
+public export
+data MathEv : Type where
+  Lang     : Language -> MathEv
+  Check    : MathEv
+  MathInit : MathEv
+  NewGame  : List Tile -> String -> MathEv
+  Inp      : String -> MathEv
+
+lang : String -> MathEv
+lang "de" = Lang DE
+lang _    = Lang EN
 ```
 
 Next, we need to keep track of the current game state:
@@ -91,12 +98,6 @@ whole game in advance, pairing calculations with the
 corresponding tiles covering the picture.
 
 ```idris
-record Tile where
-  constructor MkTile
-  posX    : Bits8
-  posY    : Bits8
-  calc    : Calc
-
 data Result : Type where
   Ended   : Result
   Correct : Result
@@ -115,7 +116,7 @@ record MathST where
 
 export
 init : MathST
-init = MS EN "" Nothing 0 [] [] ""
+init = MS EN "" Nothing 4 [] [] ""
 
 currentCalc : MathST -> Maybe Calc
 currentCalc gs = case gs.calcs of
@@ -284,12 +285,12 @@ randomTile (px,py) = do
   sortVal <- randomRIO (0, 1000)
   pure (sortVal, MkTile px py c)
 
-randomGame : HasIO io => Language -> io MathST
-randomGame l = do
+randomGame : HasIO io => io MathEv
+randomGame = do
   pic   <- rndSelect pictures
   pairs <- traverse randomTile [| MkPair [0..3] [0..3] |]
   let ts = snd <$> sortBy (comparing fst) pairs
-  pure $ MS l "" Nothing 4 Nil ts pic
+  pure $ NewGame ts pic
 ```
 
 The heart of the application logic is function `checkAnswer`:
@@ -307,11 +308,19 @@ checkAnswer gs = {result := Just Ended} gs
 With the above, updating the application state is very easy:
 
 ```idris
+export
 adjST : MathEv -> MathST -> MathST
-adjST (Lang x) = {lang := x}
-adjST Check    = checkAnswer
-adjST MathInit = id
-adjST (Inp s)  = {answer := s}
+adjST (Lang x)         s = {lang := x} s
+adjST Check            s = checkAnswer s
+adjST MathInit         s = {lang := s.lang} init
+adjST (Inp a)          s = {answer := a} s
+adjST (NewGame ts pic) s =
+  { answer := ""
+  , result := Nothing
+  , wrong  := []
+  , calcs  := ts
+  , pic    := pic
+  } s
 ```
 
 Next, we define the functionality used to display the game state.
@@ -333,24 +342,23 @@ displayST s =
   ]
 
 displayEv : MathEv -> Cmd MathEv
-displayEv (Lang x) = child exampleDiv (content x)
-displayEv Check    = value resultIn ""
-displayEv MathInit = child exampleDiv (content init.lang)
-displayEv (Inp _)  = noAction
+displayEv (Lang x)      = child exampleDiv (content x)
+displayEv Check         = value resultIn ""
+displayEv MathInit      = noAction
+displayEv (Inp _)       = noAction
+displayEv (NewGame _ _) = child exampleDiv (content init.lang)
 
+display' : MathEv -> MathST -> Cmds MathEv
+display' e s = displayEv e :: displayST s
+
+export covering
 display : MathEv -> MathST -> Cmds MathEv
-display e s = displayEv e :: displayST s
+display MathInit s = [ C $ randomGame >>= \e => runMVC adjST display' e s]
+display e        s = display' e s
 ```
 
 The main controller is pretty simple. However, we need to generate
 an random game during initialization, so that slightly complicates things:
-
-```idris
-export
-runMath : Handler MathEv => Controller MathST MathEv
-runMath MathInit s = randomGame s.lang >>= runDOM adjST display MathInit
-runMath e        s = runDOM adjST display e s
-```
 
 <!-- vi: filetype=idris2:syntax=markdown
 -->

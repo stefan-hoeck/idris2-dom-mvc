@@ -172,6 +172,7 @@ dispTime n ms = "\Loaded \{show n.value} buttons in \{show ms} ms."
 Adjusting the application state is very simple:
 
 ```idris
+export
 adjST : PerfEv -> PerfST -> PerfST
 adjST PerfInit       = const init
 adjST (NumChanged e) = {num := eitherToMaybe e}
@@ -189,34 +190,20 @@ slow down the user interface.
 displayST : PerfST -> Cmds PerfEv
 displayST s = [disabledM btnRun s.num, show out s.sum]
 
+reloadCmd : NumBtns -> Cmd PerfEv
+reloadCmd n = C $ do
+  ((),dt) <- timed (updateDOM [child buttons $ btns n])
+  updateDOM {e = PerfEv} [text time $ dispTime n dt]
+
 displayEv : PerfEv -> PerfST -> Cmd PerfEv
 displayEv PerfInit       _ = child exampleDiv content
 displayEv (NumChanged e) _ = validate natIn e
 displayEv (Set k)        _ = disabled (btnRef k) True
-displayEv Reload         s = maybe noAction (child buttons . btns) s.num
+displayEv Reload         s = maybe noAction reloadCmd s.num
 
+export
 display : PerfEv -> PerfST -> Cmds PerfEv
 display e s = displayEv e s :: displayST s
-```
-
-The main controller is slightly more involved because we want to
-record the time taken to create the buttons to get a feeling for
-the performance we can achieve. Function `Web.MVC.Animate.timed` is used
-for this: It calculates the time difference (in milliseconds) spent
-within an `IO` action.
-
-However, we update the displayed time only after a set of new buttons
-was created successfully:
-
-```idris
-export
-runPerf : Handler PerfEv => Controller PerfST PerfEv
-runPerf e s = do
-  (s2,dt) <- timed (runDOM adjST display e s)
-  case (e,s2.num) of
-    (Reload,Just n) => updateDOM {e = PerfEv} [text time $ dispTime n dt]
-    _               => pure ()
-  pure s2
 ```
 
 <!-- vi: filetype=idris2:syntax=markdown

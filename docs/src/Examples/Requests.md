@@ -53,14 +53,6 @@ data ReqEv : Type where
   Got      : Either HTTPError Quote -> ReqEv
 ```
 
-The state type is even trivial: There is no state of interest, and I'm just
-using a placeholder to align it with the other example apps.
-
-```idris
-public export
-data ReqST = RS
-```
-
 ## View
 
 The view just holds a button and some space for printing
@@ -105,17 +97,14 @@ Finally, the controller: The only new part is where we send a
 HTTP request when event `GetQuote` occurs:
 
 ```idris
-display : ReqEv -> ReqST -> Cmds ReqEv
-display ReqInit  s = [child exampleDiv content]
-display GetQuote s = [getJSON "https://elm-lang.org/api/random-quotes" Got]
-display (Got x)  s =
+export
+display : ReqEv -> Cmds ReqEv
+display ReqInit  = [child exampleDiv content]
+display GetQuote = [getJSON "https://elm-lang.org/api/random-quotes" Got]
+display (Got x)  =
   [ children quoteInfo (dispResult x)
   , text quote $ either (const "") quote x
   ]
-
-export
-runReq : Handler ReqEv => Controller ReqST ReqEv
-runReq = runDOM (const id) display
 ```
 
 <!-- vi: filetype=idris2:syntax=markdown

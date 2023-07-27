@@ -32,6 +32,10 @@ export %inline
 Contravariant Handler where
   contramap f (H h) = H (h . f)
 
+export
+cmapIO : {0 a,b : _} -> (a -> JSIO b) -> Handler b -> Handler a
+cmapIO f (H g) = H $ f >=> g
+
 export %inline
 handle : Handler e => e -> JSIO ()
 handle = handle_ %search
@@ -170,9 +174,21 @@ export
 Monoid (Cmd e) where
   neutral = C $ pure ()
 
+export %inline
+mapCmdIO : {0 a,b : _} -> (a -> JSIO b) -> Cmd a -> Cmd b
+mapCmdIO f (C run) = C $ run @{cmapIO f %search}
+
 public export
 0 Cmds : Type -> Type
 Cmds = List . Cmd
+
+export %inline
+mapCmds : {0 a,b : _} -> (a -> b) -> Cmds a -> Cmds b
+mapCmds = map . map
+
+export %inline
+mapCmdsIO : {0 a,b : _} -> (a -> JSIO b) -> Cmds a -> Cmds b
+mapCmdsIO = map . mapCmdIO
 
 export %inline
 noAction : Cmd e

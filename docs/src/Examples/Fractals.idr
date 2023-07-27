@@ -54,11 +54,11 @@ readDelay =
 
 public export
 data FractEv : Type where
-  FractInit : FractEv
-  Iter      : Either String Iterations -> FractEv
-  Redraw    : Either String RedrawDelay -> FractEv
-  Run       : FractEv
-  Inc       : DTime -> FractEv
+  FractInit  : FractEv
+  Iter       : Either String Iterations -> FractEv
+  Redraw     : Either String RedrawDelay -> FractEv
+  Run        : FractEv
+  Inc        : DTime -> FractEv
 
 public export
 record FractST where
@@ -68,11 +68,10 @@ record FractST where
   redrawIn : Maybe RedrawDelay
   redraw   : RedrawDelay
   dtime    : DTime
-  cleanUp  : IO ()
 
 export
 init : FractST
-init = FS [] Nothing Nothing 500 0 (pure ())
+init = FS [] Nothing Nothing 500 0
 
 --------------------------------------------------------------------------------
 --          View
@@ -107,8 +106,9 @@ rotate : List t -> List t
 rotate []     = []
 rotate (h::t) = t ++ [h]
 
+export
 adjST : FractEv -> FractST -> FractST
-adjST FractInit  s = init
+adjST FractInit       s = init
 adjST (Iter x)   s = {itersIn  := eitherToMaybe x} s
 adjST (Redraw x) s = {redrawIn := eitherToMaybe x} s
 adjST (Inc dt)   s =
@@ -137,19 +137,12 @@ displayST s =
   ]
 
 displayEv : FractEv -> Cmd FractEv
-displayEv FractInit  = child exampleDiv content
-displayEv (Iter x)   = validate txtIter x
-displayEv (Redraw x) = validate txtRedraw x
-displayEv Run        = noAction
-displayEv (Inc m)    = noAction
-
-display : FractEv -> FractST -> Cmds FractEv
-display e s = displayEv e :: displayST s
+displayEv FractInit      = child exampleDiv content
+displayEv (Iter x)       = validate txtIter x
+displayEv (Redraw x)     = validate txtRedraw x
+displayEv Run            = noAction
+displayEv (Inc m)        = noAction
 
 export
-runFract : Handler FractEv => Controller FractST FractEv
-runFract FractInit s = do
-  s2   <- runDOM adjST display FractInit s
-  stop <- animate (handle . Inc)
-  pure $ {cleanUp := stop} s2
-runFract e s = runDOM adjST display e s
+display : FractEv -> FractST -> Cmds FractEv
+display e s = displayEv e :: displayST s

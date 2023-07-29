@@ -4,7 +4,7 @@ import JS
 import Text.HTML.Ref
 import Text.HTML.Tag
 import Web.Html
-import Web.MVC.Output
+import Web.MVC.Util
 
 import public Web.MVC.Canvas.Angle
 import public Web.MVC.Canvas.Scene

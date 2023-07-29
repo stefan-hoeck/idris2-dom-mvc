@@ -98,13 +98,14 @@ HTTP request when event `GetQuote` occurs:
 
 ```idris
 export
-display : ReqEv -> Cmds ReqEv
-display ReqInit  = [child exampleDiv content]
-display GetQuote = [getJSON "https://elm-lang.org/api/random-quotes" Got]
+display : ReqEv -> Cmd ReqEv
+display ReqInit  = child exampleDiv content
+display GetQuote = getJSON "https://elm-lang.org/api/random-quotes" Got
 display (Got x)  =
-  [ children quoteInfo (dispResult x)
-  , text quote $ either (const "") quote x
-  ]
+  batch
+    [ children quoteInfo (dispResult x)
+    , text quote $ either (const "") quote x
+    ]
 ```
 
 <!-- vi: filetype=idris2:syntax=markdown

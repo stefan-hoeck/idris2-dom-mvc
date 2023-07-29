@@ -112,6 +112,7 @@ record NumBalls where
 public export
 data BallsEv : Type where
   BallsInit  : BallsEv
+  GotCleanup : IO () -> BallsEv
   Run        : BallsEv
   NumIn      : Either String NumBalls -> BallsEv
   Next       : DTime -> BallsEv
@@ -123,13 +124,14 @@ record BallsST where
   count    : Nat
   dtime    : DTime
   numBalls : Maybe NumBalls
+  cleanUp  : IO ()
 
 fpsCount : Nat
 fpsCount = 15
 
 export
 init : BallsST
-init = BS [] fpsCount 0 Nothing
+init = BS [] fpsCount 0 Nothing (pure ())
 
 read : String -> Either String NumBalls
 read =
@@ -300,6 +302,7 @@ The rest is pretty straight forward:
 export
 adjST : BallsEv -> BallsST -> BallsST
 adjST BallsInit       s = init
+adjST (GotCleanup cu) s = {cleanUp := cu} s
 adjST Run             s = {balls := maybe s.balls initialBalls s.numBalls} s
 adjST (NumIn x)       s = {numBalls := eitherToMaybe x} s
 adjST (Next m)        s = case s.count of
@@ -317,12 +320,13 @@ showFPS n =
   let val := 1000 * cast fpsCount `div` n
    in "FPS: \{show val}"
 
-displayST : BallsST -> Cmds BallsEv
+displayST : BallsST -> Cmd BallsEv
 displayST s =
-  [ disabledM btnRun s.numBalls
-  , render out (ballsToScene s.balls)
-  , updateIf (s.count == 0) (text log $ showFPS s.dtime)
-  ]
+  batch
+    [ disabledM btnRun s.numBalls
+    , render out (ballsToScene s.balls)
+    , updateIf (s.count == 0) (text log $ showFPS s.dtime)
+    ]
 ```
 
 In addition, we redraw the whole application in case of the `Init`
@@ -331,14 +335,16 @@ user input:
 
 ```idris
 displayEv : BallsEv -> Cmd BallsEv
-displayEv BallsInit  = child exampleDiv content
-displayEv Run        = noAction
-displayEv (NumIn x)  = validate txtCount x
-displayEv (Next m)   = noAction
+displayEv BallsInit      =
+  child exampleDiv content <+> animateWithCleanup GotCleanup Next
+displayEv Run            = noAction
+displayEv (GotCleanup _) = noAction
+displayEv (NumIn x)      = validate txtCount x
+displayEv (Next m)       = noAction
 
 export
-display : BallsEv -> BallsST -> Cmds BallsEv
-display e s = displayEv e :: displayST s
+display : BallsEv -> BallsST -> Cmd BallsEv
+display e s = displayEv e <+> displayST s
 ```
 
 The main controller must make sure the animation is started

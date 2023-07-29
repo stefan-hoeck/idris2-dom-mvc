@@ -109,13 +109,14 @@ the necessary updates to the DOM, that are required on
 almost every event:
 
 ```idris
-displayST : Int8 -> Cmds ResetEv
+displayST : Int8 -> Cmd ResetEv
 displayST n =
-  [ disabled btnDec   (n <= -10)
-  , disabled btnInc   (n >= 10)
-  , disabled btnReset (n == 0)
-  , show out n
-  ]
+  batch
+    [ disabled btnDec   (n <= -10)
+    , disabled btnInc   (n >= 10)
+    , disabled btnReset (n == 0)
+    , show out n
+    ]
 ```
 
 Third, one for updating the DOM based on the current event.
@@ -126,8 +127,8 @@ on the initializing event:
 
 ```idris
 export
-display : ResetEv -> Int8 -> Cmds ResetEv
-display ResetInit n = child exampleDiv content :: displayST n
+display : ResetEv -> Int8 -> Cmd ResetEv
+display ResetInit n = child exampleDiv content <+> displayST n
 display (Mod f)   n = displayST n
 ```
 
@@ -137,6 +138,35 @@ own `Cmd` in case some functionality is missing.
 A `Cmd e` is a wrapper around `Handler e => JSIO ()`, which
 allows us to implement updates to the DOM which register new
 event handlers.
+
+Here is a non-comprehensive list of predefined `Cmd`s:
+
+* `children`: Replaces a node's child nodes with a new list of nodes.
+* `child`: Replaces a node's child nodes with a single new node.
+* `text`: Replaces a node's child nodes with a text node.
+* `show`: Like `text` but uses `show` on its argument to create a string
+  to display.
+* `raw`: Replaces a node's child nodes with new nodes generated from the
+  string argument containing raw HTML.
+* `style`: Replaces a `<style>` node's content if a set of new CSS rules.
+* `append`: Appends a node to the list of children of another node.
+* `prepend`: Prepends a node to the list of children of another node.
+* `before`: Puts a node before another in a list of child nodes.
+* `after`: Puts a node after another in a list child nodes.
+* `replace`: Replace a whole node with another one.
+* `remove` : Removes a node and all its children from the DOM.
+* `validityMsg`: Set a custom validity message at an element.
+* `validate`: Set a custom validity message at an element based
+  on an `Either String a`.
+* `attr`: Sets a single attribute at a node. This could also be a new
+  event.
+* `render` : Render a `Scene` at a canvas element.
+* `value` : Change the value of an `<input>` or similar element.
+* `focus` : Focus the given element. Useful when a new `<input>` field
+  or button has just been created.
+
+As we will see in later parts of the tutorial, it is quite straight forward
+to create ones own `Cmd e` values.
 
 <!-- vi: filetype=idris2:syntax=markdown
 -->

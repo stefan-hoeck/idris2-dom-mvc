@@ -3,6 +3,7 @@ module Web.MVC.Animate
 
 import Data.IORef
 import JS
+import Web.MVC.Cmd
 
 --------------------------------------------------------------------------------
 --          Time
@@ -16,15 +17,15 @@ export
 currentTime : HasIO io => io Integer
 currentTime = primIO prim__time
 
-||| Determine the time taken to run the given action and return
-||| the difference together with the action's result.
+||| Determine the time taken to run a command and wrap it in an
+||| event.
 export
-timed : JSIO a -> JSIO (a,Integer)
-timed act = do
+timed : (Integer -> e) -> Cmd e -> Cmd e
+timed toEv (C f) = C $ \h => do
   t1 <- currentTime
-  v  <- act
+  f h
   t2 <- currentTime
-  pure (v, t2 - t1)
+  h (toEv $ t2 - t1)
 
 --------------------------------------------------------------------------------
 --          Timers
@@ -46,13 +47,17 @@ prim__clearInterval : IntervalID -> PrimIO ()
 ||| Returns an ID, which can be used with `clearInterval` to
 ||| cancel the timer.
 export
-setInterval : HasIO io => Bits32 -> JSIO () -> io (IntervalID)
-setInterval millis run = primIO $ prim__setInterval millis (runJS run)
+every : e -> Bits32 -> Cmd e
+every ev millis =
+  C $ \h => ignore $ primIO (prim__setInterval millis (runJS $ h ev))
 
 ||| Cancel a running timer with the given ID.
 export
-clearInterval : HasIO io => IntervalID -> io ()
-clearInterval id = primIO $ prim__clearInterval id
+everyWithCleanup : (IntervalID -> e) -> e -> Bits32 -> Cmd e
+everyWithCleanup idToEv ev millis =
+  C $ \h => Prelude.do
+    id <- primIO (prim__setInterval millis (runJS $ h ev))
+    h (idToEv id)
 
 --------------------------------------------------------------------------------
 --          Animations
@@ -93,8 +98,21 @@ DTime = Bits32
 ||| Returns a cleanup action, which can be run to
 ||| stop the running animation.
 export
-animate : HasIO io => (DTime -> JSIO ()) -> io (IO ())
-animate run = do
+animate : (DTime -> e) -> Cmd e
+animate toEv = C $ \h => Prelude.do
+  primIO $ prim__animate (\dt => runJS (h $ toEv dt) $> 0)
+
+||| Use `window.requestAnimationFrame` to repeatedly
+||| animate the given function.
+|||
+||| The function takes the time delta (in milliseconds) since
+||| the previous animation step as input.
+|||
+||| Returns a cleanup action, which can be run to
+||| stop the running animation.
+export
+animateWithCleanup : (IO () -> e) -> (DTime -> e) -> Cmd e
+animateWithCleanup cleanupToEv toEv = C $ \h => Prelude.do
   ref <- newIORef (the Bits32 0)
-  primIO $ prim__animate (\dt => runJS (run dt) >> readIORef ref)
-  pure (writeIORef ref 1)
+  primIO $ prim__animate (\dt => runJS (h $ toEv dt) >> readIORef ref)
+  h $ cleanupToEv (writeIORef ref 1)

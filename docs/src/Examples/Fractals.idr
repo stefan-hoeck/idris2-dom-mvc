@@ -59,6 +59,7 @@ data FractEv : Type where
   Redraw     : Either String RedrawDelay -> FractEv
   Run        : FractEv
   Inc        : DTime -> FractEv
+  GotCleanup : IO () -> FractEv
 
 public export
 record FractST where
@@ -68,10 +69,11 @@ record FractST where
   redrawIn : Maybe RedrawDelay
   redraw   : RedrawDelay
   dtime    : DTime
+  cleanUp  : IO ()
 
 export
 init : FractST
-init = FS [] Nothing Nothing 500 0
+init = FS [] Nothing Nothing 500 0 (pure ())
 
 --------------------------------------------------------------------------------
 --          View
@@ -109,6 +111,7 @@ rotate (h::t) = t ++ [h]
 export
 adjST : FractEv -> FractST -> FractST
 adjST FractInit       s = init
+adjST (GotCleanup cu) s = {cleanUp := cu} s
 adjST (Iter x)   s = {itersIn  := eitherToMaybe x} s
 adjST (Redraw x) s = {redrawIn := eitherToMaybe x} s
 adjST (Inc dt)   s =
@@ -130,19 +133,22 @@ dragonStr : List String -> String
 dragonStr (h::t) = h
 dragonStr []     = ""
 
-displayST : FractST -> Cmds FractEv
+displayST : FractST -> Cmd FractEv
 displayST s =
-  [ disabled btnRun $ null s.itersIn || null s.redrawIn
-  , updateIf (s.dtime == 0) (child out . Raw $ dragonStr s.dragons)
-  ]
+  batch
+    [ disabled btnRun $ null s.itersIn || null s.redrawIn
+    , updateIf (s.dtime == 0) (child out . Raw $ dragonStr s.dragons)
+    ]
 
 displayEv : FractEv -> Cmd FractEv
-displayEv FractInit      = child exampleDiv content
+displayEv FractInit      =
+  child exampleDiv content <+> animateWithCleanup GotCleanup Inc
 displayEv (Iter x)       = validate txtIter x
 displayEv (Redraw x)     = validate txtRedraw x
 displayEv Run            = noAction
+displayEv (GotCleanup _) = noAction
 displayEv (Inc m)        = noAction
 
 export
-display : FractEv -> FractST -> Cmds FractEv
-display e s = displayEv e :: displayST s
+display : FractEv -> FractST -> Cmd FractEv
+display e s = displayEv e <+> displayST s

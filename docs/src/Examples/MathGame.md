@@ -330,31 +330,28 @@ top of the picture, display the next calculation, and clear
 the input text field:
 
 ```idris
-displayST : MathST -> Cmds MathEv
+displayST : MathST -> Cmd MathEv
 displayST s =
-  [ disabledM checkBtn $ currentCalc s
-  , disabledM resultIn $ currentCalc s
-  , text calc $ maybe "" dispCalc (currentCalc s)
-  , text out  $ maybe "" (reply s.lang) s.result
-  , attr pic  $ style "background-image : url('\{s.pic}');"
-  , attr out  $ style (fromMaybe "" $ s.result >>= style)
-  , render pic (dispState s)
-  ]
+  batch
+    [ disabledM checkBtn $ currentCalc s
+    , disabledM resultIn $ currentCalc s
+    , text calc $ maybe "" dispCalc (currentCalc s)
+    , text out  $ maybe "" (reply s.lang) s.result
+    , attr pic  $ style "background-image : url('\{s.pic}');"
+    , attr out  $ style (fromMaybe "" $ s.result >>= style)
+    , render pic (dispState s)
+    ]
 
 displayEv : MathEv -> Cmd MathEv
 displayEv (Lang x)      = child exampleDiv (content x)
 displayEv Check         = value resultIn ""
-displayEv MathInit      = noAction
+displayEv MathInit      = child exampleDiv (content EN) <+> cmd randomGame
 displayEv (Inp _)       = noAction
 displayEv (NewGame _ _) = child exampleDiv (content init.lang)
 
-display' : MathEv -> MathST -> Cmds MathEv
-display' e s = displayEv e :: displayST s
-
 export covering
-display : MathEv -> MathST -> Cmds MathEv
-display MathInit s = [ C $ randomGame >>= \e => runMVC adjST display' e s]
-display e        s = display' e s
+display : MathEv -> MathST -> Cmd MathEv
+display e s = displayEv e <+> displayST s
 ```
 
 The main controller is pretty simple. However, we need to generate

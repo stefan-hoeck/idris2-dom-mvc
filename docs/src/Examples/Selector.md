@@ -240,14 +240,14 @@ are going to need access to the main event handler, so we pass it via
 a `parameters` block:
 
 ```idris
-adjST : Event -> ST -> ST
-adjST (ChangeApp x) s = init
-adjST (EBalls x)    s = {balls $= adjST x} s
-adjST (EFract x)    s = {fract $= adjST x} s
-adjST (EPerf x)     s = {perf  $= adjST x} s
-adjST (EReset x)    s = {reset $= adjST x} s
-adjST (EMath x)     s = {math  $= adjST x} s
-adjST (EReq x)      s = s
+update : Event -> ST -> ST
+update (ChangeApp x) = id
+update (EBalls x)    = {balls $= adjST x}
+update (EFract x)    = {fract $= adjST x}
+update (EPerf x)     = {perf  $= adjST x}
+update (EReset x)    = {reset $= adjST x}
+update (EMath x)     = {math  $= adjST x}
+update (EReq x)      = id
 ```
 
 Function `runApp` only handles the events from example applications
@@ -264,37 +264,30 @@ In a second step, we choose the example app to start by pattern
 matching on the `App` event fired by the `<select>` element:
 
 ```idris
-toInit : App -> Event
-toInit Reset = EReset ResetInit
-toInit Perf  = EPerf PerfInit
-toInit Req   = EReq ReqInit
-toInit Balls = EBalls BallsInit
-toInit Fract = EFract FractInit
-toInit Math  = EMath MathInit
+appInit : App -> Event
+appInit Reset = EReset ResetInit
+appInit Perf  = EPerf PerfInit
+appInit Req   = EReq ReqInit
+appInit Balls = EBalls BallsInit
+appInit Fract = EFract FractInit
+appInit Math  = EMath MathInit
 
-switch : Handler Event => App -> IORef (IO ()) -> JSIO ()
-switch x ref = do
-  cu     <- readIORef ref
-  liftIO cu
-  cu_new <- case x of
-    Balls => animate (handle . EBalls . Next)
-    Fract => animate (handle . EFract . Inc)
-    _     => pure (pure ())
-  writeIORef ref cu_new
-  handle (toInit x)
+cleanup : ST -> IO ()
+cleanup s = s.balls.cleanUp >> s.fract.cleanUp
 
-covering
-displayEv : IORef (IO ()) -> Event -> ST -> Cmds Event
-displayEv ref (ChangeApp x) s = [ style appStyle rules
-                                , ChangeApp <$> child contentDiv (content x)
-                                , C $ switch x ref
-                                ]
-displayEv ref (EBalls x)    s = map EBalls <$> display x s.balls
-displayEv ref (EFract x)    s = map EFract <$> display x s.fract
-displayEv ref (EPerf x)     s = map EPerf  <$> display x s.perf
-displayEv ref (EReset x)    s = map EReset <$> display x s.reset
-displayEv ref (EMath x)     s = map EMath  <$> display x s.math
-displayEv ref (EReq x)      s = map EReq   <$> display x
+display : Event -> ST -> Cmd Event
+display (EBalls x)    s = EBalls <$> display x s.balls
+display (EFract x)    s = EFract <$> display x s.fract
+display (EPerf x)     s = EPerf  <$> display x s.perf
+display (EReset x)    s = EReset <$> display x s.reset
+display (EMath x)     s = EMath  <$> display x s.math
+display (EReq x)      s = EReq   <$> display x
+display (ChangeApp x) s =
+  batch
+    [ liftIO (cleanup s) >> pure (appInit x)
+    , style appStyle rules
+    , ChangeApp <$> child contentDiv (content x)
+    ]
 ```
 
 As we will see when we look at each of the example applications, every
@@ -308,10 +301,8 @@ application, however, we just pass it on to `runApp`.
 
 ```idris
 export covering
-ui : JSIO ()
-ui = do
-  ref <- newIORef {a = IO ()} (pure ())
-  runMVC adjST (displayEv ref) (ChangeApp Reset) init
+ui : IO ()
+ui = runMVC update display (putStrLn . dispErr) (ChangeApp Reset) init
 ```
 
 ## Comparison with other MVC Libraries

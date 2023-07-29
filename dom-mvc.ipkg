@@ -9,7 +9,9 @@ depends    = base      >= 0.6.0
            , refined
            , tailrec
 
-modules    = Text.CSS
+modules    = Data.Queue
+
+           , Text.CSS
            , Text.CSS.Angle
            , Text.CSS.Color
            , Text.CSS.Declaration
@@ -35,9 +37,10 @@ modules    = Text.CSS
            , Web.MVC
            , Web.MVC.Animate
            , Web.MVC.Cmd
-           , Web.MVC.Output
            , Web.MVC.Event
            , Web.MVC.Http
+           , Web.MVC.Util
+           , Web.MVC.View
 
            , Web.MVC.Canvas
            , Web.MVC.Canvas.Angle

@@ -68,6 +68,7 @@ data PerfEv : Type where
   PerfInit   : PerfEv
   NumChanged : Either String NumBtns -> PerfEv
   Reload     : PerfEv
+  GotTime    : Integer -> PerfEv
   Set        : Nat -> PerfEv
 ```
 
@@ -164,9 +165,10 @@ As before, we define several pure functions for updating
 the state and the DOM depending on the current event.
 
 ```idris
-dispTime : NumBtns -> Integer -> String
-dispTime 1 ms = "\Loaded one button in \{show ms} ms."
-dispTime n ms = "\Loaded \{show n.value} buttons in \{show ms} ms."
+dispTime : Maybe NumBtns -> Integer -> String
+dispTime Nothing  ms = "\Loaded no buttons in \{show ms} ms."
+dispTime (Just 1) ms = "\Loaded one button in \{show ms} ms."
+dispTime (Just n) ms = "\Loaded \{show n.value} buttons in \{show ms} ms."
 ```
 
 Adjusting the application state is very simple:
@@ -175,6 +177,7 @@ Adjusting the application state is very simple:
 export
 adjST : PerfEv -> PerfST -> PerfST
 adjST PerfInit       = const init
+adjST (GotTime _)    = id
 adjST (NumChanged e) = {num := eitherToMaybe e}
 adjST Reload         = {sum := 0}
 adjST (Set k)        = {sum $= (+k)}
@@ -187,23 +190,20 @@ nor do we have redraw thousands of buttons, which would drastically
 slow down the user interface.
 
 ```idris
-displayST : PerfST -> Cmds PerfEv
-displayST s = [disabledM btnRun s.num, show out s.sum]
-
-reloadCmd : NumBtns -> Cmd PerfEv
-reloadCmd n = C $ do
-  ((),dt) <- timed (updateDOM [child buttons $ btns n])
-  updateDOM {e = PerfEv} [text time $ dispTime n dt]
+displayST : PerfST -> Cmd PerfEv
+displayST s = batch [disabledM btnRun s.num, show out s.sum]
 
 displayEv : PerfEv -> PerfST -> Cmd PerfEv
 displayEv PerfInit       _ = child exampleDiv content
 displayEv (NumChanged e) _ = validate natIn e
 displayEv (Set k)        _ = disabled (btnRef k) True
-displayEv Reload         s = maybe noAction reloadCmd s.num
+displayEv (GotTime n)    s = text time (dispTime s.num n)
+displayEv Reload         s =
+  maybe noAction (timed GotTime . child buttons . btns) s.num
 
 export
-display : PerfEv -> PerfST -> Cmds PerfEv
-display e s = displayEv e s :: displayST s
+display : PerfEv -> PerfST -> Cmd PerfEv
+display e s = displayEv e s <+> displayST s
 ```
 
 <!-- vi: filetype=idris2:syntax=markdown

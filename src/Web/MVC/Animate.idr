@@ -64,17 +64,16 @@ everyWithCleanup idToEv ev millis =
 --------------------------------------------------------------------------------
 
 %foreign """
-         browser:lambda:(h,w)=>{
+         browser:lambda:(stop,h,w)=>{
             let previousTimeStamp;
-            let stop = 0;
 
             function step(timestamp) {
               if (previousTimeStamp === undefined)
                 previousTimeStamp = timestamp;
               const dtime = timestamp - previousTimeStamp;
               previousTimeStamp = timestamp;
-              stop = h(dtime)(w);
-              if (stop === 0) {
+              if (stop(w) === 0) {
+                h(dtime)(w)
                 window.requestAnimationFrame(step);
               }
             }
@@ -82,7 +81,7 @@ everyWithCleanup idToEv ev millis =
             window.requestAnimationFrame(step);
          }
          """
-prim__animate : (Bits32 -> IO Bits32) -> PrimIO ()
+prim__animate : IO Bits32 -> (Bits32 -> IO ()) -> PrimIO ()
 
 ||| Alias for a time delta in milliseconds
 public export
@@ -100,7 +99,7 @@ DTime = Bits32
 export
 animate : (DTime -> e) -> Cmd e
 animate toEv = C $ \h => Prelude.do
-  primIO $ prim__animate (\dt => runJS (h $ toEv dt) $> 0)
+  primIO $ prim__animate (pure 0) (runJS . h . toEv)
 
 ||| Use `window.requestAnimationFrame` to repeatedly
 ||| animate the given function.
@@ -114,5 +113,5 @@ export
 animateWithCleanup : (IO () -> e) -> (DTime -> e) -> Cmd e
 animateWithCleanup cleanupToEv toEv = C $ \h => Prelude.do
   ref <- newIORef (the Bits32 0)
-  primIO $ prim__animate (\dt => runJS (h $ toEv dt) >> readIORef ref)
+  primIO $ prim__animate (readIORef ref) (runJS . h . toEv)
   h $ cleanupToEv (writeIORef ref 1)

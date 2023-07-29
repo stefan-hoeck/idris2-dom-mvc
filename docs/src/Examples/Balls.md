@@ -229,7 +229,7 @@ content =
             , class widget
             , placeholder "Range: [\{show MinBalls}, \{show MaxBalls}]"
             ] []
-    , button [Id btnRun, onClick Run, classes [widget,btn]] ["Run"]
+    , button [Id btnRun, onClick Run, disabled True, classes [widget,btn]] ["Run"]
     , div [Id log] []
     , canvas [Id out, width wcanvas, height wcanvas] []
     ]
@@ -319,14 +319,6 @@ showFPS 0 = ""
 showFPS n =
   let val := 1000 * cast fpsCount `div` n
    in "FPS: \{show val}"
-
-displayST : BallsST -> Cmd BallsEv
-displayST s =
-  batch
-    [ disabledM btnRun s.numBalls
-    , render out (ballsToScene s.balls)
-    , updateIf (s.count == 0) (text log $ showFPS s.dtime)
-    ]
 ```
 
 In addition, we redraw the whole application in case of the `Init`
@@ -334,17 +326,18 @@ event, and we update the text field's validation message upon
 user input:
 
 ```idris
-displayEv : BallsEv -> Cmd BallsEv
-displayEv BallsInit      =
-  child exampleDiv content <+> animateWithCleanup GotCleanup Next
-displayEv Run            = noAction
-displayEv (GotCleanup _) = noAction
-displayEv (NumIn x)      = validate txtCount x
-displayEv (Next m)       = noAction
-
 export
 display : BallsEv -> BallsST -> Cmd BallsEv
-display e s = displayEv e <+> displayST s
+display BallsInit      _ =
+  child exampleDiv content <+> animateWithCleanup GotCleanup Next
+display Run            _ = noAction
+display (GotCleanup _) _ = noAction
+display (NumIn x)      _ = validate txtCount x <+> disabledE btnRun x
+display (Next m)       s =
+  batch
+    [ render out (ballsToScene s.balls)
+    , updateIf (s.count == 0) (text log $ showFPS s.dtime)
+    ]
 ```
 
 The main controller must make sure the animation is started

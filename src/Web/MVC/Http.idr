@@ -110,7 +110,9 @@ parameters {0 r    : Type}
     traverseList_ (append fd) ps
     XMLHttpRequest.send' x (Def . Just $ inject fd)
 
-  ||| Send a HTTP request.
+  ||| Sends a HTTP request.
+  |||
+  ||| Converts the response to an event of type `r`.
   export
   request :
        (method  : Method)

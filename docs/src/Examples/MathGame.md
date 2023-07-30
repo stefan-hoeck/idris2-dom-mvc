@@ -288,7 +288,7 @@ randomTile (px,py) = do
 randomGame : HasIO io => io MathEv
 randomGame = do
   pic   <- rndSelect pictures
-  pairs <- traverse randomTile [| MkPair [0..3] [0..3] |]
+  pairs <- traverse randomTile [| MkPair [the Bits8 0..3] [the Bits8 0..3] |]
   let ts = snd <$> sortBy (comparing fst) pairs
   pure $ NewGame ts pic
 ```
@@ -309,12 +309,12 @@ With the above, updating the application state is very easy:
 
 ```idris
 export
-adjST : MathEv -> MathST -> MathST
-adjST (Lang x)         s = {lang := x} s
-adjST Check            s = checkAnswer s
-adjST MathInit         s = {lang := s.lang} init
-adjST (Inp a)          s = {answer := a} s
-adjST (NewGame ts pic) s =
+update : MathEv -> MathST -> MathST
+update (Lang x)         s = {lang := x} s
+update Check            s = checkAnswer s
+update MathInit         s = {lang := s.lang} init
+update (Inp a)          s = {answer := a} s
+update (NewGame ts pic) s =
   { answer := ""
   , result := Nothing
   , wrong  := []
@@ -354,8 +354,10 @@ display : MathEv -> MathST -> Cmd MathEv
 display e s = displayEv e <+> displayST s
 ```
 
-The main controller is pretty simple. However, we need to generate
-an random game during initialization, so that slightly complicates things:
+One important aspect I'd like to point out is that coming up with a new
+game is an effectful computation, because it involves random value
+generation. For this, we synchronously run `randomGame` and fire the resulting
+event when we encounter a `MathInit` event (`cmd randomGame`).
 
 <!-- vi: filetype=idris2:syntax=markdown
 -->

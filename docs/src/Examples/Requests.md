@@ -28,7 +28,11 @@ import Web.MVC.Http
 When sending a request to the server at "https://elm-lang.org/api/random-quotes",
 the response is a quote plus some information encoded in a JSON object.
 We therefore first need to decode the JSON object in question and
-store its content in a record type:
+store its content in a record type. Interface `FromJSON` from the *json-simple*
+library is used for decoding JSON objects. It can be derived automatically
+via elaborator reflection for regular data types (if you are more interested
+in this topic, the [elab-util](https://github.com/stefan-hoeck/idris2-elab-util)
+library comes with its own lengthy tutorial).
 
 ```idris
 public export
@@ -42,8 +46,8 @@ record Quote where
 %runElab derive "Quote" [Show,Eq,FromJSON,ToJSON]
 ```
 
-Our even type is very basic: An event to initialize the page,
-one to send a new request, and one holding the server's response:
+Our event type is very basic: An event to initialize the page,
+one to start a new request, and one to hold the server's response:
 
 ```idris
 public export

@@ -17,8 +17,8 @@ export
 currentTime : HasIO io => io Integer
 currentTime = primIO prim__time
 
-||| Determine the time taken to run a command and wrap it in an
-||| event.
+||| Determine the time taken to setup a command and wrap it in an
+||| event that will be fired synchronously.
 export
 timed : (Integer -> e) -> Cmd e -> Cmd e
 timed toEv (C f) = C $ \h => do
@@ -41,23 +41,24 @@ prim__setInterval : Bits32 -> IO () -> PrimIO IntervalID
 %foreign "browser:lambda:(i,w)=>clearInterval(i)"
 prim__clearInterval : IntervalID -> PrimIO ()
 
-||| Sets a timer to repeatedly carry out the given IO action
-||| after the given number of milliseconds.
+||| Fires the given event every `n` milliseconds.
 |||
-||| Returns an ID, which can be used with `clearInterval` to
-||| cancel the timer.
+||| Note: Use `animate` for smoothly running animations.
 export
-every : e -> Bits32 -> Cmd e
+every : e -> (n : Bits32) -> Cmd e
 every ev millis =
   C $ \h => ignore $ primIO (prim__setInterval millis (runJS $ h ev))
 
-||| Cancel a running timer with the given ID.
+||| Fires the given event every `n` milliseconds.
+|||
+||| In addition, this synchronously fires an event with a wrapped
+||| handle for stopping the timer.
 export
-everyWithCleanup : (IntervalID -> e) -> e -> Bits32 -> Cmd e
-everyWithCleanup idToEv ev millis =
+everyWithCleanup : (IO () -> e) -> e -> Bits32 -> Cmd e
+everyWithCleanup cleanUpToEv ev millis =
   C $ \h => Prelude.do
     id <- primIO (prim__setInterval millis (runJS $ h ev))
-    h (idToEv id)
+    h (cleanUpToEv $ primIO (prim__clearInterval id))
 
 --------------------------------------------------------------------------------
 --          Animations
@@ -88,27 +89,18 @@ public export
 DTime : Type
 DTime = Bits32
 
-||| Use `window.requestAnimationFrame` to repeatedly
-||| animate the given function.
-|||
-||| The function takes the time delta (in milliseconds) since
-||| the previous animation step as input.
-|||
-||| Returns a cleanup action, which can be run to
-||| stop the running animation.
+||| Repeatedly fires the given event holding the time delta in
+||| milliseconds since the last animation step.
 export
 animate : (DTime -> e) -> Cmd e
 animate toEv = C $ \h => Prelude.do
   primIO $ prim__animate (pure 0) (runJS . h . toEv)
 
-||| Use `window.requestAnimationFrame` to repeatedly
-||| animate the given function.
+||| Repeatedly fires the given event holding the time delta in
+||| milliseconds since the last animation step.
 |||
-||| The function takes the time delta (in milliseconds) since
-||| the previous animation step as input.
-|||
-||| Returns a cleanup action, which can be run to
-||| stop the running animation.
+||| In addition, synchronously fires an event with a wrapped
+||| handle for stopping the animation.
 export
 animateWithCleanup : (IO () -> e) -> (DTime -> e) -> Cmd e
 animateWithCleanup cleanupToEv toEv = C $ \h => Prelude.do

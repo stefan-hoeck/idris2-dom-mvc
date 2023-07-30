@@ -69,7 +69,7 @@ record FractST where
   redrawIn : Maybe RedrawDelay
   redraw   : RedrawDelay
   dtime    : DTime
-  cleanUp  : IO ()
+  cleanup  : IO ()
 
 export
 init : FractST
@@ -109,17 +109,17 @@ rotate []     = []
 rotate (h::t) = t ++ [h]
 
 export
-adjST : FractEv -> FractST -> FractST
-adjST FractInit       s = init
-adjST (GotCleanup cu) s = {cleanUp := cu} s
-adjST (Iter x)   s = {itersIn  := eitherToMaybe x} s
-adjST (Redraw x) s = {redrawIn := eitherToMaybe x} s
-adjST (Inc dt)   s =
+update : FractEv -> FractST -> FractST
+update FractInit       s = init
+update (GotCleanup cu) s = {cleanup := cu} s
+update (Iter x)   s = {itersIn  := eitherToMaybe x} s
+update (Redraw x) s = {redrawIn := eitherToMaybe x} s
+update (Inc dt)   s =
   let dt2 := s.dtime + dt
    in if cast dt2 >= s.redraw.value
          then {dtime := 0, dragons $= rotate} s
          else {dtime := dt2} s
-adjST Run        s =
+update Run        s =
   fromMaybe s $ do
     i <- s.itersIn
     r <- s.redrawIn

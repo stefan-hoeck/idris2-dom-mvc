@@ -9,20 +9,19 @@ First some imports:
 ```idris
 module Examples.Selector
 
-import Data.IORef
 import Derive.Finite
+
 import Examples.CSS
 import Examples.CSS.Core
-import Text.HTML.Select
-
 import Examples.Balls
 import Examples.Fractals
 import Examples.MathGame
 import Examples.Performance
 import Examples.Requests
 import Examples.Reset
+
+import Text.HTML.Select
 import Web.MVC
-import Web.MVC.Animate
 
 %default total
 %language ElabReflection
@@ -35,22 +34,10 @@ to write a single page web application.
 
 Some stuff from external libraries is also imported:
 
-* `Monocle`: From the [idris2-monocle](https://github.com/stefan-hoeck/idris2-monocle)
-   library, an optics library for derivable setters and getters for deeply
-   nested data structures. We use it to effectfully update the fields
-   of our main application state.
-* `Derive.Lens`: Also from the monocle library, this allows us to derive
-  lenses for the record type we use as the main application state.
 * `Derive.Finite`: This is from the
   [idris2-finite](https://github.com/stefan-hoeck/idris2-finite)
   library, which allows us to derive and enumerate all values of a type with
   a finite number of inhabitants.
-* `Data.List.Quatifiers.Extra`:
-  This is from the
-  [idris2-quantifiers-extra](https://github.com/stefan-hoeck/idris2-quantifiers-extra)
-  library, providing some additional functionality for working with heterogeneous
-  lists and sums. We use a heterogeneous sum to collect the events our
-  different example applications fire.
 
 ## Writing HTML in Idris2
 
@@ -132,6 +119,7 @@ Tag `t` gives us some additional guarantees, both when building
 a `Node` (the element and ID tag must match), but also when looking
 up elements in the DOM, or when we need to restrict the allowed
 elements in a function.
+
 In the example above, `exampleDiv` points to the DOM element
 where the content of the example applications will go. It's the
 only part of the main web page that is not static.
@@ -144,7 +132,7 @@ fires an `App` event whenever the user changes the selected value
 
 ## The Interactive Part: Handling Events
 
-Now that we have the structure of our web page specified, we
+Now that we have the general structure of our web page specified, we
 can have a quick look at how we define its interactive behavior.
 
 The core function used for this (which is used in our application's
@@ -153,10 +141,11 @@ The core function used for this (which is used in our application's
 ```haskell
 runController :
      {0 e,s  : Type}
+  -> (ctrl   : e -> s -> (s, Cmd e))
+  -> (onErr  : JSErr -> IO ())
   -> (initEv : e)
   -> (initST : s)
-  -> (ctrl   : Handler e => Controller s e)
-  -> JSIO ()
+  -> IO ()
 ```
 
 We are going to describe the different parts in detail: An interactive
@@ -173,35 +162,58 @@ is the initial application state.
 Finally, we need a way to update and display the state when an event
 occurs, and this is what function `ctrl` does. Now, this is the
 most complex argument, so we need to talk about it in some detail.
-The first argument of `ctrl` is of type `Handler e`, which is an
-wrapper around `e -> JSIO ()`. So `ctrl` is given a function for handling
-events, which it can use to register event listeners at the user interface.
-As we will see, we don't typically register event handlers manually,
-as the utilities we invoke do this for us. However, they need access
-to an event handler to do so, and that's what the first argument of `ctrl`
-is used for.
+Its two arguments are the current event and application state,
+respectively, and the result is the updated application state plus
+a value of type `Cmd e`, an abbreviation for "command".
 
-The result type `Controller s e` is an alias for `e -> s -> JSIO s`,
-so `ctrl` actually takes two more arguments.
-These are the current event and application state, respectively,
-and the result is the updated application state plus
-some side effects for updating the user interface in accordance
-with the fired event and new application state.
+Type `Cmd e` is defined as follows:
 
-As we will see, we often use pure functions together with some
-existing utilities for `ctrl`, which will tremendously simplify
-our code. Still, for the main application, we are going to need
-the components described above.
+```haskell
+public export
+record Cmd (e : Type) where
+  constructor C
+  run : (handler : e -> JSIO ()) -> JSIO ()
+```
 
-First, we define the event type. Our main application consists of a selection
-of several unrelated example apps, each with its own state and
-event type. We collect all event types plus our own `App` in
+Given an argument *handler* of type `e -> JSIO ()` it runs some effectfull
+computation. We use commands for all the side effect that occur when
+a user interacts with our web page. The handler is used as the event
+listener to be installed at new interactive components, for instance.
+So, a command is not only used to display stuff at the UI but also
+to set up new event sources. Here are a couple of use cases for
+commands, some of which we will look at in the example applications:
+
+* Add or replace whole parts of the user interface dynamically, which
+  will then fire their own events.
+* Send and receive a HTTP request to fetch data from another server.
+  Once the data is ready, a new event will have to be fired
+* Set up a timer to produce an event at regular intervals.
+* Set up an animation, to redraw a canvas element
+  as quickly and smoothly as possible.
+* Run an effectful computation such as a random number generator to
+  fire a new event immediately.
+
+As you can see, commands keep the user interface dynamic and interactive.
+Now, the type of function `ctrl` encapsulates everything we need to get
+going. However, it is not always the most convenient way to react
+on events. In many applications the code will get nicer and more
+readable if we split up the two steps united in `ctrl`: Updating the
+state and producing a new command. This is what we will be doing throughout
+the example applications.
+
+### Defining the Event Type
+
+Our main application consists of a selection
+of several completely unrelated example apps, each with its own state and
+event type. We collect all event types plus our own `App` event in
 a heterogeneous sum, and use this as the main event type of the
-whole application:
+whole application. For initializing the whole thing, we add an event
+called `Init`:
 
 ```idris
 public export
 data Event : Type where
+  Init      : Event
   ChangeApp : App -> Event
   EBalls    : BallsEv -> Event
   EFract    : FractEv -> Event
@@ -211,10 +223,11 @@ data Event : Type where
   EReq      : ReqEv   -> Event
 ```
 
+### Defining the Application State
+
 Likewise, we use a record type listing the states of the different
-applications in its fields. We are going to use the lenses from
-monocle to modify a single application state, depending on the
-input being fired. We also define the initial application state,
+applications in its fields.
+We also define the initial application state,
 which just lists the initial state of each example application.
 
 ```idris
@@ -232,62 +245,94 @@ init : ST
 init = S init 0 init init init
 ```
 
-We can now implement the main application controller. In order to
-distinguish between the events coming from each application,
-we use a heterogeneous list holding one controller for each event type.
-Function `Web.MVC.controlMany` is useful for this. All controllers
-are going to need access to the main event handler, so we pass it via
-a `parameters` block:
+### Updating the State
+
+Updating the state of the main application is very straight forward:
+We just update each application's state when it fires one of its events:
 
 ```idris
 update : Event -> ST -> ST
+update Init          = id
 update (ChangeApp x) = id
-update (EBalls x)    = {balls $= adjST x}
-update (EFract x)    = {fract $= adjST x}
-update (EPerf x)     = {perf  $= adjST x}
-update (EReset x)    = {reset $= adjST x}
-update (EMath x)     = {math  $= adjST x}
+update (EBalls x)    = {balls $= update x}
+update (EFract x)    = {fract $= update x}
+update (EPerf x)     = {perf  $= update x}
+update (EReset x)    = {reset $= update x}
+update (EMath x)     = {math  $= update x}
 update (EReq x)      = id
 ```
 
-Function `runApp` only handles the events from example applications
-but not the `App` event from the main `<select>` element. We handle
-that one in two functions: First, when we change the example application,
-we have to cleanup some stuff first: Some applications use animations,
-and we'd like to stop those before starting a new app. Cleanup
-hooks are stored in the corresponding application states.
+Note how this allows us to combine completely unrelated applications
+and run one at a time or several at once if we wanted to.
 
-We also reset the main view, to make sure all traces from previous
-applications are properly removed:
+### Issuing Commands
 
-In a second step, we choose the example app to start by pattern
-matching on the `App` event fired by the `<select>` element:
+The function for issuing the next commands based on the current event
+and state is a bit more involved. First, some applications run animations
+or timers, and we must make sure to stop those when our users would like
+to switch applications. The two applications in question provide their
+own cleanup hooks in their state, so we invoke those to make sure all
+animations and timers are stopped:
 
 ```idris
-appInit : App -> Event
-appInit Reset = EReset ResetInit
-appInit Perf  = EPerf PerfInit
-appInit Req   = EReq ReqInit
-appInit Balls = EBalls BallsInit
-appInit Fract = EFract FractInit
-appInit Math  = EMath MathInit
-
 cleanup : ST -> IO ()
-cleanup s = s.balls.cleanUp >> s.fract.cleanUp
+cleanup s = s.balls.cleanup >> s.fract.cleanup
+```
 
+I usually call the function for issuing commands "display", but other names
+would be just as valid. I'll break down the `display` function into several
+parts. First, if one of the example applications fires an event, we just
+pass it on to the corresponding application's `display` function. Their
+events need to be wrapped in our own `Event` type, and luckily, `Cmd` is
+a `Functor`, so we can use the `(<$>)` operator (an alias for `map`) to
+do just that:
+
+```idris
 display : Event -> ST -> Cmd Event
-display (EBalls x)    s = EBalls <$> display x s.balls
-display (EFract x)    s = EFract <$> display x s.fract
-display (EPerf x)     s = EPerf  <$> display x s.perf
-display (EReset x)    s = EReset <$> display x s.reset
-display (EMath x)     s = EMath  <$> display x s.math
-display (EReq x)      s = EReq   <$> display x
+display (EBalls x) s = EBalls <$> display x s.balls
+display (EFract x) s = EFract <$> display x s.fract
+display (EPerf x)  s = EPerf  <$> display x s.perf
+display (EReset x) s = EReset <$> display x s.reset
+display (EMath x)  s = EMath  <$> display x s.math
+display (EReq x)   s = EReq   <$> display x
+```
+
+We must also handle the `Init` event, where the whole user interface
+will be set up. Here, we add our CSS rules to pages' `<style>` element,
+add the nodes for displaying our `<select>` element as the only child
+node of the node represented by `contentDiv`, and we synchronously
+fire an event for running the first example application:
+
+```idris
+display Init s =
+  batch
+    [ style appStyle rules
+    , ChangeApp <$> child contentDiv (content Reset)
+    , pure (ChangeApp Reset)
+    ]
+```
+
+Finally, we have to deal with the case where a user selects a new
+application to run. In this case we must make sure to first run the
+cleanup hooks before synchronously fire an initialization event
+for the application to run. This application's `display` function
+will then receive the event in question (see the cases above) and
+initialize things accordingly:
+
+```idris
 display (ChangeApp x) s =
   batch
-    [ liftIO (cleanup s) >> pure (appInit x)
-    , style appStyle rules
-    , ChangeApp <$> child contentDiv (content x)
+    [ liftIO_ (cleanup s)
+    , pure (appInit x)
     ]
+  where
+    appInit : App -> Event
+    appInit Reset = EReset ResetInit
+    appInit Perf  = EPerf PerfInit
+    appInit Req   = EReq ReqInit
+    appInit Balls = EBalls BallsInit
+    appInit Fract = EFract FractInit
+    appInit Math  = EMath MathInit
 ```
 
 As we will see when we look at each of the example applications, every
@@ -297,12 +342,12 @@ To sum it all up, and to define function `ui`, which is directly invoked
 by function `main`, we just pattern match on the event we get. If it's
 an `App` signalling that the user wants to try a different example
 app, we cleanup and switch applications. If it's coming from a running
-application, however, we just pass it on to `runApp`.
+application, however, we just pass it on to the application in question.
 
 ```idris
 export covering
 ui : IO ()
-ui = runMVC update display (putStrLn . dispErr) (ChangeApp Reset) init
+ui = runMVC update display (putStrLn . dispErr) Init init
 ```
 
 ## Comparison with other MVC Libraries

@@ -15,7 +15,7 @@ export
 out : Ref Div
 out = Id "performance_sum"
 
--- text fields where users can enter the number of buttons
+-- text field where users can enter the number of buttons
 export
 natIn : Ref Tag.Input
 natIn = Id "performance_numbuttons"

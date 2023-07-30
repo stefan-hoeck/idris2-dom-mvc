@@ -4,7 +4,7 @@ import JS
 import Text.HTML.Ref
 import Text.HTML.Tag
 import Web.Html
-import Web.MVC.Output
+import Web.MVC.Util
 
 import public Web.MVC.Canvas.Angle
 import public Web.MVC.Canvas.Scene
@@ -38,6 +38,7 @@ context2D canvas = do
     Just c  => pure c
     Nothing => throwError $ Caught "Web.MVC.Canvas.context2d: No rendering context for canvas"
 
+||| Render a seen in a canvas in the DOM.
 export
 render : Ref Canvas -> (CanvasDims -> Scene) -> JSIO ()
 render ref scene = do

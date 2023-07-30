@@ -82,24 +82,24 @@ append fd (FilePart name file)    = FormData.append1 fd name file
 
 parameters {0 r    : Type}
 
-  onerror : Handler r => Expect r -> HTTPError -> JSIO ()
-  onerror (ExpectJSON f)   err = handle (f $ Left err)
-  onerror (ExpectString f) err = handle (f $ Left err)
-  onerror (ExpectAny f)    err = handle (f $ Left err)
+  onerror : (r -> JSIO ()) -> Expect r -> HTTPError -> JSIO ()
+  onerror h (ExpectJSON f)   err = h (f $ Left err)
+  onerror h (ExpectString f) err = h (f $ Left err)
+  onerror h (ExpectAny f)    err = h (f $ Left err)
 
-  onsuccess : Handler r => Expect r -> XMLHttpRequest -> JSIO ()
-  onsuccess (ExpectString f)   x = responseText x >>= handle . f . Right
-  onsuccess (ExpectAny f)      x = handle (f $ Right ())
-  onsuccess (ExpectJSON {a} f) x = do
+  onsuccess : (r -> JSIO ()) -> Expect r -> XMLHttpRequest -> JSIO ()
+  onsuccess h (ExpectString f)   x = responseText x >>= h . f . Right
+  onsuccess h (ExpectAny f)      x = h (f $ Right ())
+  onsuccess h (ExpectJSON {a} f) x = do
     s <- responseText x
-    handle . f . mapFst (JSONError s) $ decode s
+    h . f . mapFst (JSONError s) $ decode s
 
-  onload : Handler r => Expect r -> XMLHttpRequest -> JSIO ()
-  onload exp x = do
+  onload : (r -> JSIO ()) -> Expect r -> XMLHttpRequest -> JSIO ()
+  onload h exp x = do
     st   <- status x
     case st >= 200 && st < 300 of
-      False => onerror exp (BadStatus st)
-      True  => onsuccess exp x
+      False => onerror h exp (BadStatus st)
+      True  => onsuccess h exp x
 
   xsend : RequestBody -> XMLHttpRequest -> JSIO ()
   xsend Empty            x = XMLHttpRequest.send x
@@ -110,7 +110,9 @@ parameters {0 r    : Type}
     traverseList_ (append fd) ps
     XMLHttpRequest.send' x (Def . Just $ inject fd)
 
-  ||| Send a HTTP request.
+  ||| Sends a HTTP request.
+  |||
+  ||| Converts the response to an event of type `r`.
   export
   request :
        (method  : Method)
@@ -120,14 +122,14 @@ parameters {0 r    : Type}
     -> (expect  : Expect r)
     -> (timeout : Maybe Bits32)
     -> Cmd r
-  request m headers url body exp tout = C $ Prelude.do
+  request m headers url body exp tout = C $ \h => Prelude.do
     -- create new Http request
     x <- XMLHttpRequest.new
 
     -- register event listeners
-    XMLHttpRequestEventTarget.onerror x ?> onerror exp NetworkError
-    XMLHttpRequestEventTarget.onload x ?> onload exp x
-    XMLHttpRequestEventTarget.ontimeout x ?> onerror exp Timeout
+    XMLHttpRequestEventTarget.onerror x ?> onerror h exp NetworkError
+    XMLHttpRequestEventTarget.onload x ?> onload h exp x
+    XMLHttpRequestEventTarget.ontimeout x ?> onerror h exp Timeout
 
     -- open url
     open_ x (cast $ show m) url

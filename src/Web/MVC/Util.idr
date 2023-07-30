@@ -1,4 +1,4 @@
-module Web.MVC.Output
+module Web.MVC.Util
 
 import JS
 import Text.CSS

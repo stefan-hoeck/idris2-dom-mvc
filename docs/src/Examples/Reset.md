@@ -53,7 +53,7 @@ Next, we need to identify the dynamic components
 of our application whose behavior or appearance will
 change depending on the current state.
 There are four of them: The buttons for increasing and decreasing
-the counter, which will be disabled if the value gets to
+the counter, which will be disabled if the value gets too
 small or too big, the reset button, which will be disabled
 if the counter is at zero, and the div element where we will output
 the current count. Again, the corresponding `Ref t`s
@@ -91,59 +91,101 @@ content =
       ]
 ```
 
+Node, that unlike in the Elm Architecture, we did not display the
+whole model in `content`, although it would certainly have been
+possible to do so. This is a matter of preference and sometimes a
+matter of performance.
+
+Personally, I prefer having a separate function for updating
+the dynamic parts of the view, depending on the current event
+and model. This makes the things that change on certain events
+stand out somewhat more at the cost of some more verbose code.
+
 ## Controller
 
 We typically define three pure functions for controlling the
 application: First, one for adjusting the application state
-according to the current event.
+according to the current event. We call this one `update` as
+in Elm:
 
 ```idris
-adjST : ResetEv -> Int8 -> Int8
-adjST ResetInit n = 0
-adjST (Mod f) n = f n
+export
+update : ResetEv -> Int8 -> Int8
+update ResetInit n = 0
+update (Mod f) n = f n
 ```
 
-Second, one for displaying the current state. This lists
-the necessary updates to the DOM, that are required on
-almost every event:
+Second, one for displaying the current state and possibly causing
+other side effects. This lists - amongst other things - the necessary
+updates to the DOM. Some of these effects might setup new event sources,
+by setting up new components in the DOM, starting an animation, or sending
+a HTTP request. Therefore, the return type is not `IO` or `JSIO` but
+`Cmd`. I tend to call these functions `display`, although the can do
+more than just displaying stuff as we will see in later parts of the
+tutorial.
+
+Here is a function that always updates the view according to
+the current state. It will define whether the buttons are enabled or not,
+and it will print the state of the counter:
 
 ```idris
-displayST : Int8 -> Cmds ResetEv
+displayST : Int8 -> Cmd ResetEv
 displayST n =
-  [ disabled btnDec   (n <= -10)
-  , disabled btnInc   (n >= 10)
-  , disabled btnReset (n == 0)
-  , show out n
-  ]
+  batch
+    [ disabled btnDec   (n <= -10)
+    , disabled btnInc   (n >= 10)
+    , disabled btnReset (n == 0)
+    , show out n
+    ]
 ```
 
-Third, one for updating the DOM based on the current event.
-This includes updates that may take some time to run or
-may interrupt user input, so we only want them to occur
-on specific occasions. Here, we completely redraw the app
-on the initializing event:
+And here is the main `display` function for acting on the
+current event and updated state (the main controller `runMVC`
+we use in our main application always updates the state first,
+before using it to compute the command):
 
 ```idris
-display : ResetEv -> Int8 -> Cmds ResetEv
-display ResetInit n = child exampleDiv content :: displayST n
+export
+display : ResetEv -> Int8 -> Cmd ResetEv
+display ResetInit n = child exampleDiv content <+> displayST n
 display (Mod f)   n = displayST n
 ```
 
 All the `Cmd` actions used above are defined in module
-`Web.MVC.Run`. It is pretty straight forward to define your
+`Web.MVC.View`. It is pretty straight forward to define your
 own `Cmd` in case some functionality is missing.
-A `Cmd e` is a wrapper around `Handler e => JSIO ()`, which
-allows us to implement updates to the DOM which register new
-event handlers.
+A `Cmd e` is a wrapper around `(handler : e -> JSIO ()) -> JSIO ()`, where
+the `handler` argument can be used as an event listener and invoked
+for firing new events synchronously or asynchronously.
 
-Finally, we define the application controller by just passing
-functions `adjST` and `display` to utility `Web.MVC.Run.runDOM`.
+Here is a non-comprehensive list of predefined `Cmd`s:
 
-```idris
-export
-runReset : Handler ResetEv => Controller Int8 ResetEv
-runReset = runDOM adjST display
-```
+* `children`: Replaces a node's child nodes with a new list of nodes.
+* `child`: Replaces a node's child nodes with a single new node.
+* `text`: Replaces a node's child nodes with a text node.
+* `show`: Like `text` but uses `show` on its argument to create a string
+  to display.
+* `raw`: Replaces a node's child nodes with new nodes generated from the
+  string argument containing raw HTML.
+* `style`: Replaces a `<style>` node's content if a set of new CSS rules.
+* `append`: Appends a node to the list of children of another node.
+* `prepend`: Prepends a node to the list of children of another node.
+* `before`: Puts a node before another in a list of child nodes.
+* `after`: Puts a node after another in a list child nodes.
+* `replace`: Replace a whole node with another one.
+* `remove` : Removes a node and all its children from the DOM.
+* `validityMsg`: Set a custom validity message at an element.
+* `validate`: Set a custom validity message at an element based
+  on an `Either String a`.
+* `attr`: Sets a single attribute at a node. This could also be a new
+  event.
+* `render` : Render a `Scene` at a canvas element.
+* `value` : Change the value of an `<input>` or similar element.
+* `focus` : Focus the given element. Useful when a new `<input>` field
+  or button has just been created.
+
+As we will see in later parts of the tutorial, it is quite straight forward
+to create ones own `Cmd e` values.
 
 <!-- vi: filetype=idris2:syntax=markdown
 -->

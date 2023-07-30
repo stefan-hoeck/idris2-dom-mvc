@@ -28,7 +28,11 @@ import Web.MVC.Http
 When sending a request to the server at "https://elm-lang.org/api/random-quotes",
 the response is a quote plus some information encoded in a JSON object.
 We therefore first need to decode the JSON object in question and
-store its content in a record type:
+store its content in a record type. Interface `FromJSON` from the *json-simple*
+library is used for decoding JSON objects. It can be derived automatically
+via elaborator reflection for regular data types (if you are more interested
+in this topic, the [elab-util](https://github.com/stefan-hoeck/idris2-elab-util)
+library comes with its own lengthy tutorial).
 
 ```idris
 public export
@@ -42,8 +46,8 @@ record Quote where
 %runElab derive "Quote" [Show,Eq,FromJSON,ToJSON]
 ```
 
-Our even type is very basic: An event to initialize the page,
-one to send a new request, and one holding the server's response:
+Our event type is very basic: An event to initialize the page,
+one to start a new request, and one to hold the server's response:
 
 ```idris
 public export
@@ -51,14 +55,6 @@ data ReqEv : Type where
   ReqInit  : ReqEv
   GetQuote : ReqEv
   Got      : Either HTTPError Quote -> ReqEv
-```
-
-The state type is even trivial: There is no state of interest, and I'm just
-using a placeholder to align it with the other example apps.
-
-```idris
-public export
-data ReqST = RS
 ```
 
 ## View
@@ -105,17 +101,15 @@ Finally, the controller: The only new part is where we send a
 HTTP request when event `GetQuote` occurs:
 
 ```idris
-display : ReqEv -> ReqST -> Cmds ReqEv
-display ReqInit  s = [child exampleDiv content]
-display GetQuote s = [getJSON "https://elm-lang.org/api/random-quotes" Got]
-display (Got x)  s =
-  [ children quoteInfo (dispResult x)
-  , text quote $ either (const "") quote x
-  ]
-
 export
-runReq : Handler ReqEv => Controller ReqST ReqEv
-runReq = runDOM (const id) display
+display : ReqEv -> Cmd ReqEv
+display ReqInit  = child exampleDiv content
+display GetQuote = getJSON "https://elm-lang.org/api/random-quotes" Got
+display (Got x)  =
+  batch
+    [ children quoteInfo (dispResult x)
+    , text quote $ either (const "") quote x
+    ]
 ```
 
 <!-- vi: filetype=idris2:syntax=markdown

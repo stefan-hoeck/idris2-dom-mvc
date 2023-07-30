@@ -9,7 +9,7 @@ of which can be clicked exactly once before being disabled,
 and the sum of the values clicked will be accumulated and
 displayed at the UI. The sum should be reset when a new set
 of buttons is created and the input field should be cleared
-when the run button is clicked.
+after the run button was clicked.
 
 Since we want to have a look at the performance of this,
 we also include an output field for the time it took to
@@ -68,7 +68,9 @@ data PerfEv : Type where
   PerfInit   : PerfEv
   NumChanged : Either String NumBtns -> PerfEv
   Reload     : PerfEv
-  Set        : Nat -> PerfEv
+  GotTime    : Integer -> PerfEv
+  Clicked    : Nat -> PerfEv
+  ClearNum   : PerfEv
 ```
 
 We also require a function for input validation:
@@ -111,7 +113,7 @@ btnRef n = Id "BTN\{show n}"
 btn : Nat -> Node PerfEv
 btn n =
   button
-    [Id (btnRef n), onClick (Set n), classes [widget,btn,inc]]
+    [Id (btnRef n), onClick (Clicked n), classes [widget,btn,inc]]
     [Text $ show n]
 ```
 
@@ -163,61 +165,66 @@ buttons should be generated. This should also happen if the
 As before, we define several pure functions for updating
 the state and the DOM depending on the current event.
 
-```idris
-dispTime : NumBtns -> Integer -> String
-dispTime 1 ms = "\Loaded one button in \{show ms} ms."
-dispTime n ms = "\Loaded \{show n.value} buttons in \{show ms} ms."
-```
-
 Adjusting the application state is very simple:
 
 ```idris
-adjST : PerfEv -> PerfST -> PerfST
-adjST PerfInit       = const init
-adjST (NumChanged e) = {num := eitherToMaybe e}
-adjST Reload         = {sum := 0}
-adjST (Set k)        = {sum $= (+k)}
+export
+update : PerfEv -> PerfST -> PerfST
+update PerfInit       = const init
+update (GotTime _)    = id
+update (NumChanged e) = {num := eitherToMaybe e}
+update Reload         = {sum := 0}
+update (Clicked k)    = {sum $= (+k)}
+update ClearNum       = {num := Nothing}
 ```
 
 Updating the DOM is not much harder. Here it is very useful that we
 do not use a virtual DOM: Since we don't recreate the whole view on
 every event, we don't have to keep track of the disabled buttons,
-nor do we have redraw thousands of buttons, which would drastically
+nor do we have to redraw thousands of buttons, which would drastically
 slow down the user interface.
 
 ```idris
-displayST : PerfST -> Cmds PerfEv
-displayST s = [disabledM btnRun s.num, show out s.sum]
+dispTime : Maybe NumBtns -> Integer -> String
+dispTime Nothing  ms = "\Loaded no buttons in \{show ms} ms."
+dispTime (Just 1) ms = "\Loaded one button in \{show ms} ms."
+dispTime (Just n) ms = "\Loaded \{show n.value} buttons in \{show ms} ms."
+
+displayST : PerfST -> Cmd PerfEv
+displayST s = batch [disabledM btnRun s.num, show out s.sum]
 
 displayEv : PerfEv -> PerfST -> Cmd PerfEv
 displayEv PerfInit       _ = child exampleDiv content
 displayEv (NumChanged e) _ = validate natIn e
-displayEv (Set k)        _ = disabled (btnRef k) True
-displayEv Reload         s = maybe noAction (child buttons . btns) s.num
+displayEv (Clicked k)    _ = disabled (btnRef k) True
+displayEv (GotTime n)    s = text time (dispTime s.num n)
+displayEv ClearNum       s = value natIn ""
+displayEv Reload         s =
+  cmdIfJust s.num (timed GotTime . child buttons . btns) <+> pure ClearNum
 
-display : PerfEv -> PerfST -> Cmds PerfEv
-display e s = displayEv e s :: displayST s
-```
-
-The main controller is slightly more involved because we want to
-record the time taken to create the buttons to get a feeling for
-the performance we can achieve. Function `Web.MVC.Animate.timed` is used
-for this: It calculates the time difference (in milliseconds) spent
-within an `IO` action.
-
-However, we update the displayed time only after a set of new buttons
-was created successfully:
-
-```idris
 export
-runPerf : Handler PerfEv => Controller PerfST PerfEv
-runPerf e s = do
-  (s2,dt) <- timed (runDOM adjST display e s)
-  case (e,s2.num) of
-    (Reload,Just n) => updateDOM {e = PerfEv} [text time $ dispTime n dt]
-    _               => pure ()
-  pure s2
+display : PerfEv -> PerfST -> Cmd PerfEv
+display e s = displayEv e s <+> displayST s
 ```
+
+I'd like to look at several of the commands used above. First, note that `Cmd e`
+is a monoid, so we can use semigroup append to combine commands. Function `batch`
+allows us to combine a list of commands. Command `validate` sets a custom
+validation message at an `<input>` field, depending on whether its `Either String x`
+argument is a `Left` or a `Right`.
+
+Function `pure` allows us to synchronously
+fire another event. Here, we only want to clear the user input and disable
+the *run* button again *after* we loaded a new set of buttons. Since the
+state is updated first, we can't clear the `numBtns` field before updating
+the DOM. An alternative would be to use a function of the following type
+instead, which would give us access to the old and new state at the same time:
+
+```haskell
+controller : PerfEv -> PerfST -> (PerfST, Cmd PerfEv)
+```
+
+Both are valid options.
 
 <!-- vi: filetype=idris2:syntax=markdown
 -->

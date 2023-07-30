@@ -112,6 +112,7 @@ record NumBalls where
 public export
 data BallsEv : Type where
   BallsInit  : BallsEv
+  GotCleanup : IO () -> BallsEv
   Run        : BallsEv
   NumIn      : Either String NumBalls -> BallsEv
   Next       : DTime -> BallsEv
@@ -123,7 +124,7 @@ record BallsST where
   count    : Nat
   dtime    : DTime
   numBalls : Maybe NumBalls
-  cleanUp  : IO ()
+  cleanup  : IO ()
 
 fpsCount : Nat
 fpsCount = 15
@@ -146,7 +147,7 @@ taken to animate 15 frames (`fpsCount`) and reduce a counter
 (`count`) on every frame.
 
 Second: We want to make sure the animation is stopped once the user
-selects another example application. Field `cleanUp` is used for this.
+selects another example application. Field `cleanup` is used for this.
 It is set to a dummy initially, but once the controller starts the
 animation, it is replace with a proper cleanup hook.
 This is then invoked in the cleanup routine of the main selector application
@@ -228,7 +229,7 @@ content =
             , class widget
             , placeholder "Range: [\{show MinBalls}, \{show MaxBalls}]"
             ] []
-    , button [Id btnRun, onClick Run, classes [widget,btn]] ["Run"]
+    , button [Id btnRun, onClick Run, disabled True, classes [widget,btn]] ["Run"]
     , div [Id log] []
     , canvas [Id out, width wcanvas, height wcanvas] []
     ]
@@ -298,11 +299,13 @@ Adjusting the state involves some fiddling with the FPS counter.
 The rest is pretty straight forward:
 
 ```idris
-adjST : BallsEv -> BallsST -> BallsST
-adjST BallsInit _ = init
-adjST Run       s = {balls := maybe s.balls initialBalls s.numBalls} s
-adjST (NumIn x) s = {numBalls := eitherToMaybe x} s
-adjST (Next m)  s = case s.count of
+export
+update : BallsEv -> BallsST -> BallsST
+update BallsInit       s = init
+update (GotCleanup cu) s = {cleanup := cu} s
+update Run             s = {balls := maybe s.balls initialBalls s.numBalls} s
+update (NumIn x)       s = {numBalls := eitherToMaybe x} s
+update (Next m)        s = case s.count of
   0   => { balls $= map (nextBall m), dtime := 0, count := fpsCount } s
   S k => { balls $= map (nextBall m), dtime $= (+m), count := k } s
 ```
@@ -316,13 +319,6 @@ showFPS 0 = ""
 showFPS n =
   let val := 1000 * cast fpsCount `div` n
    in "FPS: \{show val}"
-
-displayST : BallsST -> Cmds BallsEv
-displayST s =
-  [ disabledM btnRun s.numBalls
-  , render out (ballsToScene s.balls)
-  , updateIf (s.count == 0) (text log $ showFPS s.dtime)
-  ]
 ```
 
 In addition, we redraw the whole application in case of the `Init`
@@ -330,31 +326,25 @@ event, and we update the text field's validation message upon
 user input:
 
 ```idris
-displayEv : BallsEv -> Cmd BallsEv
-displayEv BallsInit = child exampleDiv content
-displayEv Run       = noAction
-displayEv (NumIn x) = validate txtCount x
-displayEv (Next m)  = noAction
-
-display : BallsEv -> BallsST -> Cmds BallsEv
-display e s = displayEv e :: displayST s
+export
+display : BallsEv -> BallsST -> Cmd BallsEv
+display BallsInit      _ =
+  child exampleDiv content <+> animateWithCleanup GotCleanup Next
+display Run            _ = noAction
+display (GotCleanup _) _ = noAction
+display (NumIn x)      _ = validate txtCount x <+> disabledE btnRun x
+display (Next m)       s =
+  batch
+    [ render out (ballsToScene s.balls)
+    , cmdIf (s.count == 0) (text log $ showFPS s.dtime)
+    ]
 ```
 
 The main controller must make sure the animation is started
 by registering an event handler upon initialization.
 Function `Web.MVC.Animate.animate` will respond with a
-cleanup hook, which we put in the `cleanUp` field of the
+cleanup hook, which we put in the `cleanup` field of the
 application state.
-
-```idris
-export
-runBalls : Handler BallsEv => Controller BallsST BallsEv
-runBalls BallsInit s = do
-  s2   <- runDOM adjST display BallsInit s -- setup HTML part of UI
-  stop <- animate (handle . Next)          -- start animation
-  pure $ {cleanUp := stop} s2              -- register cleanup hook
-runBalls e s = runDOM adjST display e s
-```
 
 <!-- vi: filetype=idris2:syntax=markdown
 -->

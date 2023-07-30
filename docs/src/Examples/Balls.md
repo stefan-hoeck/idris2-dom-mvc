@@ -345,7 +345,6 @@ by registering an event handler upon initialization.
 Function `Web.MVC.Animate.animate` will respond with a
 cleanup hook, which we put in the `cleanup` field of the
 application state.
-```
 
 <!-- vi: filetype=idris2:syntax=markdown
 -->

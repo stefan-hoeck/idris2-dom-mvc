@@ -336,7 +336,7 @@ display (NumIn x)      _ = validate txtCount x <+> disabledE btnRun x
 display (Next m)       s =
   batch
     [ render out (ballsToScene s.balls)
-    , updateIf (s.count == 0) (text log $ showFPS s.dtime)
+    , cmdIf (s.count == 0) (text log $ showFPS s.dtime)
     ]
 ```
 

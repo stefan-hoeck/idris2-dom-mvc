@@ -200,8 +200,7 @@ displayEv (Clicked k)    _ = disabled (btnRef k) True
 displayEv (GotTime n)    s = text time (dispTime s.num n)
 displayEv ClearNum       s = value natIn ""
 displayEv Reload         s =
-  maybe noAction (timed GotTime . child buttons . btns) s.num <+>
-  pure ClearNum
+  cmdIfJust s.num (timed GotTime . child buttons . btns) <+> pure ClearNum
 
 export
 display : PerfEv -> PerfST -> Cmd PerfEv

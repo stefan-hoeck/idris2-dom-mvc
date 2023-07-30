@@ -94,6 +94,13 @@ noAction = neutral
 ||| If the boolean flag is `False`, this will return the
 ||| empty command (`noAction`).
 export
-updateIf : Bool -> Lazy (Cmd e) -> Cmd e
-updateIf True  u = u
-updateIf False _ = noAction
+cmdIf : Bool -> Lazy (Cmd e) -> Cmd e
+cmdIf True  u = u
+cmdIf False _ = noAction
+
+||| Convert a value in a `Maybe` to a `Cmd e`.
+|||
+||| Returns the empty command in case of a `Nothing`.
+export
+cmdIfJust : Maybe t -> (t -> Cmd e) -> Cmd e
+cmdIfJust m f = maybe noAction f m

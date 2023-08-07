@@ -84,6 +84,14 @@ data Attribute : {0 k : Type} -> (t : k) -> (event : Type) -> Type where
     -> Attribute t event
   Empty  : Attribute t event
 
+export
+Functor (Attribute t) where
+  map f (Id x)           = Id x
+  map f (Str n v)        = Str n v
+  map f (Bool n v)       = Bool n v
+  map f (Event_ pd sp e) = Event_ pd sp $ map f e
+  map f Empty            = Empty
+
 public export
 Attributes : {0 k : _} -> (t : k) -> Type -> Type
 Attributes t e = List (Attribute t e)

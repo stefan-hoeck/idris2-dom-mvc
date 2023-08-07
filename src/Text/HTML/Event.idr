@@ -1,5 +1,6 @@
 module Text.HTML.Event
 
+import Data.Contravariant
 import Data.Maybe
 
 %default total
@@ -96,3 +97,23 @@ data DOMEvent : Type -> Type where
 
   -- Wheel
   Wheel      : (WheelInfo -> Maybe a) -> DOMEvent a
+
+export
+Functor DOMEvent where
+  map f (Click g)      = Click (map f . g)
+  map f (DblClick g)   = DblClick (map f . g)
+  map f (MouseDown g)  = MouseDown (map f . g)
+  map f (MouseUp g)    = MouseUp (map f . g)
+  map f (MouseEnter g) = MouseEnter (map f . g)
+  map f (MouseLeave g) = MouseLeave (map f . g)
+  map f (MouseOver g)  = MouseOver (map f . g)
+  map f (MouseOut g)   = MouseOut (map f . g)
+  map f (MouseMove g)  = MouseMove (map f . g)
+  map f (Blur x)       = Blur (f x)
+  map f (Focus x)      = Focus (f x)
+  map f (KeyDown g)    = KeyDown (map f . g)
+  map f (KeyUp g)      = KeyUp (map f . g)
+  map f (Change g)     = Change (map f . g)
+  map f (Input g)      = Input (map f . g)
+  map f (HashChange x) = HashChange (f x)
+  map f (Wheel g)      = Wheel (map f . g)

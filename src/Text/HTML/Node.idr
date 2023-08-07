@@ -24,7 +24,7 @@ data Node : (event : Type) -> Type where
 
   Empty : Node ev
 
-  MapIO : (a -> JSIO b) -> Node a -> Node b
+  Map   : (a -> b) -> Node a -> Node b
 
 export %inline
 FromString (Node ev) where
@@ -32,7 +32,30 @@ FromString (Node ev) where
 
 export %inline
 Functor Node where
-  map f = MapIO (pure . f)
+  map = Map
+
+||| Prepend a non-event attribute to a node's list of attributes.
+export
+withAttribute :
+     ({0 s : _} -> {0 t : HTMLTag s} -> Attribute t Void)
+  -> Node e
+  -> Node e
+withAttribute a (El tp as ns) = El tp (map (\x => void x) a ::as) ns
+withAttribute a (Map f n)     = Map f $ withAttribute a n
+withAttribute a n             = n
+
+||| Prepend the given ID to a node's list of attributes.
+export
+withId : String -> Node e -> Node e
+withId s (El tp as ns) = El tp (Id (Id s) :: as) ns
+withId s (Map f n)     = Map f $ withId s n
+withId s n             = n
+
+||| Prepend the given event to a node's list of attributes.
+export
+withEv : DOMEvent e -> Node e -> Node e
+withEv ev (El tp as ns) = El tp (Event ev :: as) ns
+withEv ev n             = n
 
 export %inline
 a : List (Attribute A ev) -> List (Node ev) -> Node ev
@@ -203,7 +226,7 @@ link : List (Attribute Link ev) -> List (Node ev) -> Node ev
 link = El _
 
 export %inline
-map : List (Attribute Map ev) -> List (Node ev) -> Node ev
+map : List (Attribute Tag.Map ev) -> List (Node ev) -> Node ev
 map = El _
 
 export %inline
@@ -374,7 +397,7 @@ render n = case n of
   Text x            => escape x
   El {tag} _ as ns  => "<\{tag}\{attrs as}>\{go [<] ns}</\{tag}>"
   Empty             => ""
-  MapIO _ n         => render n
+  Map _ n           => render n
 
   where
     go : SnocList String -> List (Node ev) -> String

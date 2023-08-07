@@ -24,31 +24,30 @@ data Node : (event : Type) -> Type where
 
   Empty : Node ev
 
-  Map   : (a -> b) -> Node a -> Node b
-
 export %inline
 FromString (Node ev) where
   fromString = Text
 
-export %inline
+export
 Functor Node where
-  map = Map
+  map f (El tpe xs ys) = El tpe (map f <$> xs) (assert_total $ map f <$> ys)
+  map f (Raw str)      = Raw str
+  map f (Text str)     = Text str
+  map f Empty          = Empty
 
 ||| Prepend a non-event attribute to a node's list of attributes.
 export
 withAttribute :
-     ({0 s : _} -> {0 t : HTMLTag s} -> Attribute t Void)
+     ({0 s : _} -> {0 t : HTMLTag s} -> Attribute t e)
   -> Node e
   -> Node e
-withAttribute a (El tp as ns) = El tp (map (\x => void x) a ::as) ns
-withAttribute a (Map f n)     = Map f $ withAttribute a n
+withAttribute a (El tp as ns) = El tp (a ::as) ns
 withAttribute a n             = n
 
 ||| Prepend the given ID to a node's list of attributes.
 export
 withId : String -> Node e -> Node e
 withId s (El tp as ns) = El tp (Id (Id s) :: as) ns
-withId s (Map f n)     = Map f $ withId s n
 withId s n             = n
 
 ||| Prepend the given event to a node's list of attributes.
@@ -397,7 +396,6 @@ render n = case n of
   Text x            => escape x
   El {tag} _ as ns  => "<\{tag}\{attrs as}>\{go [<] ns}</\{tag}>"
   Empty             => ""
-  Map _ n           => render n
 
   where
     go : SnocList String -> List (Node ev) -> String

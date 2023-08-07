@@ -119,8 +119,6 @@ addNode h doc p (Text str) = append p [inject str]
 
 addNode h doc p Empty      = pure ()
 
-addNode h doc p (Map f n)  = addNode (h . f) doc p n
-
 addNodes h doc p = assert_total $ traverseList_ (addNode h doc p)
 
 setupNodes :

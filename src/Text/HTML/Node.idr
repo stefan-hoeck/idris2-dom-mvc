@@ -1,5 +1,6 @@
 module Text.HTML.Node
 
+import JS
 import Data.String
 import Text.HTML.Attribute
 import Text.HTML.Event
@@ -23,9 +24,15 @@ data Node : (event : Type) -> Type where
 
   Empty : Node ev
 
+  MapIO : (a -> JSIO b) -> Node a -> Node b
+
 export %inline
 FromString (Node ev) where
   fromString = Text
+
+export %inline
+Functor Node where
+  map f = MapIO (pure . f)
 
 export %inline
 a : List (Attribute A ev) -> List (Node ev) -> Node ev
@@ -212,7 +219,7 @@ meter : List (Attribute Meter ev) -> List (Node ev) -> Node ev
 meter = El _
 
 export %inline
-object : List (Attribute Object ev) -> List (Node ev) -> Node ev
+object : List (Attribute Tag.Object ev) -> List (Node ev) -> Node ev
 object = El _
 
 export %inline
@@ -367,6 +374,7 @@ render n = case n of
   Text x            => escape x
   El {tag} _ as ns  => "<\{tag}\{attrs as}>\{go [<] ns}</\{tag}>"
   Empty             => ""
+  MapIO _ n         => render n
 
   where
     go : SnocList String -> List (Node ev) -> String

@@ -20,106 +20,108 @@ import Web.MVC.Util
 --          Registering Events
 --------------------------------------------------------------------------------
 
-parameters {0 e : Type}
-           (h   : e -> JSIO ())
+||| Low level method for registering `DOMEvents` at
+||| HTML elements.
+|||
+||| Use this, for instance, to register `DOMEvents` at
+||| a HTMLElement of a static document.
+export
+registerDOMEvent :
+     (e -> JSIO ())
+  -> (preventDefault, stopPropagation : Bool)
+  -> EventTarget
+  -> DOMEvent e
+  -> JSIO ()
+registerDOMEvent h prev stop el de = case de of
+  Input f      => inst "input" inputInfo f
+  Change f     => inst "change" changeInfo f
+  Click f      => inst "click" mouseInfo f
+  DblClick f   => inst "dblclick" mouseInfo f
+  KeyDown f    => inst "keydown" keyInfo f
+  KeyUp f      => inst "keyup" keyInfo f
+  Blur v       => inst "blur" {t = Event} (const $ pure v) Just
+  Focus v      => inst "focus" {t = Event} (const $ pure v) Just
+  MouseDown f  => inst "mousedown" mouseInfo f
+  MouseUp f    => inst "mouseup" mouseInfo f
+  MouseEnter f => inst "mouseenter" mouseInfo f
+  MouseLeave f => inst "mouseleave" mouseInfo f
+  MouseOver f  => inst "mouseover" mouseInfo f
+  MouseOut f   => inst "mouseout" mouseInfo f
+  MouseMove f  => inst "mousemove" mouseInfo f
+  HashChange v => inst "hashchange" {t = Event} (const $ pure v) Just
+  Wheel f      => inst "wheel" wheelInfo f
 
-  ||| Low level method for registering `DOMEvents` at
-  ||| HTML elements.
-  |||
-  ||| Use this, for instance, to register `DOMEvents` at
-  ||| a HTMLElement of a static document.
-  export
-  registerDOMEvent :
-       (preventDefault, stopPropagation : Bool)
-    -> EventTarget
-    -> DOMEvent e
-    -> JSIO ()
-  registerDOMEvent prev stop el de = case de of
-    Input f      => inst "input" inputInfo f
-    Change f     => inst "change" changeInfo f
-    Click f      => inst "click" mouseInfo f
-    DblClick f   => inst "dblclick" mouseInfo f
-    KeyDown f    => inst "keydown" keyInfo f
-    KeyUp f      => inst "keyup" keyInfo f
-    Blur v       => inst "blur" {t = Event} (const $ pure v) Just
-    Focus v      => inst "focus" {t = Event} (const $ pure v) Just
-    MouseDown f  => inst "mousedown" mouseInfo f
-    MouseUp f    => inst "mouseup" mouseInfo f
-    MouseEnter f => inst "mouseenter" mouseInfo f
-    MouseLeave f => inst "mouseleave" mouseInfo f
-    MouseOver f  => inst "mouseover" mouseInfo f
-    MouseOut f   => inst "mouseout" mouseInfo f
-    MouseMove f  => inst "mousemove" mouseInfo f
-    HashChange v => inst "hashchange" {t = Event} (const $ pure v) Just
-    Wheel f      => inst "wheel" wheelInfo f
+  where
+    inst :
+         {0 t,b : _}
+      -> {auto c : SafeCast t}
+      -> String
+      -> (t -> JSIO b)
+      -> (b -> Maybe e)
+      -> JSIO ()
+    inst {t} s conv f = do
+      c <- callback {cb = EventListener} $ \e => do
+        canc <- cancelable e
+        bubl <- bubbles e
+        when (canc && prev) (preventDefault e)
+        when (bubl && stop) (stopPropagation e)
+        va <- tryCast_ t "Web.MVC.View.inst" e
+        conv va >>= maybe (pure ()) h . f
 
-    where
-      inst :
-           {0 t,b : _}
-        -> {auto c : SafeCast t}
-        -> String
-        -> (t -> JSIO b)
-        -> (b -> Maybe e)
-        -> JSIO ()
-      inst {t} s conv f = do
-        c <- callback {cb = EventListener} $ \e => do
-          canc <- cancelable e
-          bubl <- bubbles e
-          when (canc && prev) (preventDefault e)
-          when (bubl && stop) (stopPropagation e)
-          va <- tryCast_ t "Web.MVC.View.inst" e
-          conv va >>= maybe (pure ()) h . f
+      addEventListener el s (Just c)
 
-        addEventListener el s (Just c)
-
-  export
-  setAttribute : Element -> Attribute t e -> JSIO ()
-  setAttribute el (Id (Id value))   = setAttribute el "id" value
-  setAttribute el (Str name value)  = setAttribute el name value
-  setAttribute el (Bool name value) = case value of
-    True  => setAttribute el name ""
-    False => removeAttribute el name
-  setAttribute el (Event_ prev stop ev) = registerDOMEvent prev stop(up el) ev
-  setAttribute el Empty      = pure ()
+export
+setAttribute : (e -> JSIO ()) -> Element -> Attribute t e -> JSIO ()
+setAttribute h el (Id (Id value))   = setAttribute el "id" value
+setAttribute h el (Str name value)  = setAttribute el name value
+setAttribute h el (Bool name value) = case value of
+  True  => setAttribute el name ""
+  False => removeAttribute el name
+setAttribute h el (Event_ prev stop ev) = registerDOMEvent h prev stop(up el) ev
+setAttribute h el Empty      = pure ()
 
 
 --------------------------------------------------------------------------------
 --          Node Preparation
 --------------------------------------------------------------------------------
 
-  addNodes :
-       {auto 0 _ : JSType t}
-    -> {auto 0 _ : Elem ParentNode (Types t)}
-    -> (doc      : Document)
-    -> (parent   : t)
-    -> (nodes    : List (Node e))
-    -> JSIO ()
+addNodes :
+     {auto 0 _ : JSType t}
+  -> {auto 0 _ : Elem ParentNode (Types t)}
+  -> (h        : e -> JSIO ())
+  -> (doc      : Document)
+  -> (parent   : t)
+  -> (nodes    : List (Node e))
+  -> JSIO ()
 
-  addNode :
-       {auto 0 _ : JSType t}
-    -> {auto 0 _ : Elem ParentNode (Types t)}
-    -> (doc      : Document)
-    -> (parent   : t)
-    -> (node     : Node e)
-    -> JSIO ()
-  addNode doc p (El {tag} _ xs ys) = do
-    n <- createElement doc tag
-    append p [inject $ n :> Node]
-    addNodes doc n ys
-    traverseList_ (setAttribute n) xs
+addNode :
+     {auto 0 _ : JSType t}
+  -> {auto 0 _ : Elem ParentNode (Types t)}
+  -> (h        : e -> JSIO ())
+  -> (doc      : Document)
+  -> (parent   : t)
+  -> (node     : Node e)
+  -> JSIO ()
+addNode h doc p (El {tag} _ xs ys) = do
+  n <- createElement doc tag
+  append p [inject $ n :> Node]
+  addNodes h doc n ys
+  traverseList_ (setAttribute h n) xs
 
-  addNode doc p (Raw str) = do
-    el <- createElement doc "template"
-    Just temp <- pure (castTo HTMLTemplateElement el) | Nothing => pure ()
-    innerHTML temp .= str
-    c         <- content temp
-    append p [inject $ c :> Node]
+addNode h doc p (Raw str) = do
+  el <- createElement doc "template"
+  Just temp <- pure (castTo HTMLTemplateElement el) | Nothing => pure ()
+  innerHTML temp .= str
+  c         <- content temp
+  append p [inject $ c :> Node]
 
-  addNode doc p (Text str) = append p [inject str]
+addNode h doc p (Text str) = append p [inject str]
 
-  addNode doc p Empty      = pure ()
+addNode h doc p Empty      = pure ()
 
-  addNodes doc p = assert_total $ traverseList_ (addNode doc p)
+addNode h doc p (MapIO f n) = addNode (f >=> h) doc p n
+
+addNodes h doc p = assert_total $ traverseList_ (addNode h doc p)
 
 setupNodes :
      (Element -> DocumentFragment -> JSIO ())

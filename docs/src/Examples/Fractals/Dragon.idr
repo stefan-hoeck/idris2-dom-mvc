@@ -28,10 +28,11 @@ rotateAround90 o p = rotate90 (p - o) + o
 Dragon : Type
 Dragon = Subset (List Point) NonEmpty
 
-0 lemma :  (as : List a)
-        -> (v : a)
-        -> (as2 : List a)
-        -> NonEmpty (as ++ v :: as2)
+0 lemma :
+     (as : List a)
+  -> (v : a)
+  -> (as2 : List a)
+  -> NonEmpty (as ++ v :: as2)
 lemma []       v as2 = IsNonEmpty
 lemma (h :: t) v as2 = IsNonEmpty
 
@@ -45,11 +46,11 @@ nextDragon (Element (h :: t) prf) =
 
 dragonSVG : (n : Nat) -> Dragon -> String
 dragonSVG n (Element ps _) =
-  let fact = pow 2 (cast (n + 2) / 2.0)
-      scale = 1.0 / fact
+  let fact  := pow 2 (cast (n + 2) / 2.0)
+      scale := 1.0 / fact
 
-      attr = fastConcat $ map (\(P x y) => #"\#{show x}, \#{show y} "#) ps
-      header =
+      attr  := fastConcat $ map (\(P x y) => #"\#{show x}, \#{show y} "#) ps
+      header :=
         the String #"""
                    <svg version="1.1"
                         width="100%"
@@ -70,10 +71,11 @@ dragonSVG n (Element ps _) =
 export
 mkDragons : (n : Nat) -> Subset (List String) NonEmpty
 mkDragons n =
-  let fd   = firstDragon
+  let fd := firstDragon
    in Element (dragonSVG 0 fd :: go fd n 1) IsNonEmpty
-  where go : Dragon -> (rem : Nat) -> (iter : Nat) -> List String
-        go _  0     _ = Nil
-        go dr (S k) n =
-          let nextDr = nextDragon dr
-           in dragonSVG n nextDr :: go nextDr k (n+1)
+  where
+    go : Dragon -> (rem : Nat) -> (iter : Nat) -> List String
+    go _  0     _ = Nil
+    go dr (S k) n =
+      let nextDr := nextDragon dr
+       in dragonSVG n nextDr :: go nextDr k (n+1)

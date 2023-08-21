@@ -83,12 +83,13 @@ the overall application layout:
 ```idris
 content : Node ResetEv
 content =
-  div [ class resetContent ]
-      [ lbl "Reset counter:"    resetLbl, btn btnReset (const 0) "Reset"
-      , lbl "Increase counter:" incLbl,   btn btnInc   (+ 1)     "+"
-      , lbl "Decrease counter:" decLbl,   btn btnDec   (+ (-1))  "-"
-      , lbl "Count:"            countLbl, div [Id out] []
-      ]
+  div
+    [ class resetContent ]
+    [ lbl "Reset counter:"    resetLbl, btn btnReset (const 0) "Reset"
+    , lbl "Increase counter:" incLbl,   btn btnInc   (+ 1)     "+"
+    , lbl "Decrease counter:" decLbl,   btn btnDec   (+ (-1))  "-"
+    , lbl "Count:"            countLbl, div [Id out] []
+    ]
 ```
 
 Node, that unlike in the Elm Architecture, we did not display the

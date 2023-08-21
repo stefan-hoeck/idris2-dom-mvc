@@ -33,8 +33,8 @@ Interpolation Percentage where
 ||| ```
 export %inline
 perc :
-     Cast Percentage a
-  => (v : Double)
+     {auto _ : Cast Percentage a}
+  -> (v : Double)
   -> {auto 0 prf : Holds IsPercentage v}
   -> a
 perc v = cast $ MkPercentage v

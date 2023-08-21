@@ -69,10 +69,12 @@ result (MkCalc x y Mult)  = x * y
 
 dispCalc : Calc -> String
 dispCalc (MkCalc x y op) = "\{show x} \{dispOp op} \{show y} = "
-  where dispOp : Op -> String
-        dispOp Plus  = "+"
-        dispOp Minus = "-"
-        dispOp Mult  = "*"
+
+  where
+    dispOp : Op -> String
+    dispOp Plus  = "+"
+    dispOp Minus = "-"
+    dispOp Mult  = "*"
 
 public export
 data MathEv : Type where
@@ -201,22 +203,25 @@ content l =
 
     , div [ Id calc ] []
 
-    , input [ Id resultIn
-            , onEnterDown Check
-            , onInput Inp
-            , class widget
-            , placeholder (resultStr l)
-            ] []
+    , input
+        [ Id resultIn
+        , onEnterDown Check
+        , onInput Inp
+        , class widget
+        , placeholder (resultStr l)
+        ] []
 
-    , button [ Id checkBtn
-             , onClick Check
-             , classes [widget,btn]
-             ] [Text $ checkAnswerStr l]
+    , button
+        [ Id checkBtn
+        , onClick Check
+        , classes [widget,btn]
+        ] [Text $ checkAnswerStr l]
 
-    , button [ Id newBtn
-             , onClick MathInit
-             , classes [widget,btn]
-             ] [Text $ newGameStr l]
+    , button
+        [ Id newBtn
+        , onClick MathInit
+        , classes [widget,btn]
+        ] [Text $ newGameStr l]
 
     , div [ Id out ] []
 

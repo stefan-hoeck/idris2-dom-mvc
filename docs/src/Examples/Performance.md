@@ -140,12 +140,13 @@ content : Node PerfEv
 content =
   div [ class performanceContent ]
     [ lbl "Number of buttons:" numButtonsLbl
-    , input [ Id natIn
-            , onInput (NumChanged . read)
-            , onEnterDown Reload
-            , classes [widget, textIn]
-            , placeholder "Enter a positive integer"
-            ] []
+    , input
+        [ Id natIn
+        , onInput (NumChanged . read)
+        , onEnterDown Reload
+        , classes [widget, textIn]
+        , placeholder "Enter a positive integer"
+        ] []
     , button [Id btnRun, onClick Reload, classes [widget, btn]] ["Run"]
     , lbl "Sum:" sumLbl
     , div [Id out] []

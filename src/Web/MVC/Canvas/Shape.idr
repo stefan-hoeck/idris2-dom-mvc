@@ -70,22 +70,23 @@ applySegment ctxt (Arc x y r start stop ccw) = do
 applySegment ctxt (ArcTo x1 y1 x2 y2 radius) =
   arcTo ctxt x1 y1 x2 y2 radius
 
-mutual
-  export
-  applyAll : CanvasRenderingContext2D -> List Shape -> JSIO ()
-  applyAll ctxt = assert_total $ traverseList_ (apply ctxt)
+export
+applyAll : CanvasRenderingContext2D -> List Shape -> JSIO ()
 
-  export
-  apply : CanvasRenderingContext2D -> Shape -> JSIO ()
-  apply ctxt (Rect x y w h Fill)   = fillRect ctxt x y w h
-  apply ctxt (Rect x y w h Stroke) = strokeRect ctxt x y w h
-  apply ctxt (Rect x y w h Clear)  = clearRect ctxt x y w h
-  apply ctxt (Path ss st)          = do
-    beginPath ctxt
-    traverseList_ (applySegment ctxt) ss
-    case st of
-      Fill   => fill ctxt
-      Stroke => stroke ctxt
-  apply ctxt (Text str x y max)    = fillText' ctxt str x y max
-  apply ctxt (Text' str x y)       = fillText ctxt str x y
-  apply ctxt (Shapes xs)           = applyAll ctxt xs
+export
+apply : CanvasRenderingContext2D -> Shape -> JSIO ()
+
+applyAll ctxt = assert_total $ traverseList_ (apply ctxt)
+
+apply ctxt (Rect x y w h Fill)   = fillRect ctxt x y w h
+apply ctxt (Rect x y w h Stroke) = strokeRect ctxt x y w h
+apply ctxt (Rect x y w h Clear)  = clearRect ctxt x y w h
+apply ctxt (Path ss st)          = do
+  beginPath ctxt
+  traverseList_ (applySegment ctxt) ss
+  case st of
+    Fill   => fill ctxt
+    Stroke => stroke ctxt
+apply ctxt (Text str x y max)    = fillText' ctxt str x y max
+apply ctxt (Text' str x y)       = fillText ctxt str x y
+apply ctxt (Shapes xs)           = applyAll ctxt xs

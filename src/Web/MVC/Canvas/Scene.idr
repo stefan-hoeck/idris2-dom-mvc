@@ -18,23 +18,24 @@ data Scene : Type where
 --          IO
 --------------------------------------------------------------------------------
 
-mutual
-  export
-  applyAll : CanvasRenderingContext2D -> List Scene -> JSIO ()
-  applyAll ctxt = assert_total $ traverseList_ (apply ctxt)
+export
+applyAll : CanvasRenderingContext2D -> List Scene -> JSIO ()
 
-  export
-  apply : CanvasRenderingContext2D -> Scene -> JSIO ()
-  apply ctxt (S1 fs tr shape) = do
-    save    ctxt
-    traverseList_ (apply ctxt) fs
-    apply   ctxt tr
-    apply   ctxt shape
-    restore ctxt
+export
+apply : CanvasRenderingContext2D -> Scene -> JSIO ()
 
-  apply ctxt (SM fs tr xs) = do
-    save     ctxt
-    traverseList_ (apply ctxt) fs
-    apply    ctxt tr
-    applyAll ctxt xs
-    restore  ctxt
+applyAll ctxt = assert_total $ traverseList_ (apply ctxt)
+
+apply ctxt (S1 fs tr shape) = do
+  save    ctxt
+  traverseList_ (apply ctxt) fs
+  apply   ctxt tr
+  apply   ctxt shape
+  restore ctxt
+
+apply ctxt (SM fs tr xs) = do
+  save     ctxt
+  traverseList_ (apply ctxt) fs
+  apply    ctxt tr
+  applyAll ctxt xs
+  restore  ctxt

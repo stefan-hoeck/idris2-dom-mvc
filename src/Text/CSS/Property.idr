@@ -49,20 +49,23 @@ namespace Display
           -> Display
 
   export
-  renderArea :  AreaTag a
-             => Vect (S m) GridValue
-             -> Vect (S n) GridValue
-             -> Vect (S m) (Vect (S n) a)
-             -> String
+  renderArea :
+       {auto _ : AreaTag a}
+    -> Vect (S m) GridValue
+    -> Vect (S n) GridValue
+    -> Vect (S m) (Vect (S n) a)
+    -> String
   renderArea rs cs as =
-    let rsStr = "grid-template-rows: \{toList rs}"
-        csStr = "grid-template-columns: \{toList cs}"
-        aStr  = fastConcat . intersperse " " . map col $ toList as
+    let rsStr := "grid-template-rows: \{toList rs}"
+        csStr := "grid-template-columns: \{toList cs}"
+        aStr  := fastConcat . intersperse " " . map col $ toList as
      in "display: grid; \{rsStr}; \{csStr}; grid-template-areas: \{aStr}"
-    where col : Vect (S n) a -> String
-          col vs =
-            let str = concat . intersperse " " . map showTag $ toList vs
-             in #""\#{str}""#
+
+    where
+      col : Vect (S n) a -> String
+      col vs =
+        let str := concat . intersperse " " . map showTag $ toList vs
+         in #""\#{str}""#
 
 namespace FlexBasis
   public export

@@ -375,16 +375,18 @@ video = El _
 export
 escape : String -> String
 escape = fastConcat . map esc . unpack
-  where esc : Char -> String
-        esc '<'          = "&lt;"
-        esc '>'          = "&gt;"
-        esc '&'          = "&amp;"
-        esc '"'          = "&quot;"
-        esc '\''         = "&#x27"
-        esc '\n'         = "\n"
-        esc '\r'         = "\r"
-        esc '\t'         = "\t"
-        esc c            = if c < ' ' then "" else singleton c
+
+  where
+    esc : Char -> String
+    esc '<'          = "&lt;"
+    esc '>'          = "&gt;"
+    esc '&'          = "&amp;"
+    esc '"'          = "&quot;"
+    esc '\''         = "&#x27"
+    esc '\n'         = "\n"
+    esc '\r'         = "\r"
+    esc '\t'         = "\t"
+    esc c            = if c < ' ' then "" else singleton c
 
 attrs : List (Attribute t ev) -> String
 attrs as = let s = displayAttributes as in if null s then "" else " " ++ s

@@ -87,19 +87,21 @@ content : Node FractEv
 content =
   div [ class fractalContent ]
     [ lbl "Number of iterations:" lblIter
-    , input [ Id txtIter
-            , onInput (Iter . readIter)
-            , onEnterDown Run
-            , class widget
-            , placeholder "Range: [\{show MinIter}, \{show MaxIter}]"
-            ] []
+    , input
+        [ Id txtIter
+        , onInput (Iter . readIter)
+        , onEnterDown Run
+        , class widget
+        , placeholder "Range: [\{show MinIter}, \{show MaxIter}]"
+        ] []
     , lbl "Iteration delay [ms]:" lblDelay
-    , input [ Id txtRedraw
-            , onInput (Redraw . readDelay)
-            , onEnterDown Run
-            , class widget
-            , placeholder "Range: [\{show MinDelay}, \{show MaxDelay}]"
-            ] []
+    , input
+        [ Id txtRedraw
+        , onInput (Redraw . readDelay)
+        , onEnterDown Run
+        , class widget
+        , placeholder "Range: [\{show MinDelay}, \{show MaxDelay}]"
+        ] []
     , button [Id btnRun, onClick Run, classes [widget,btn]] ["Run"]
     , div [Id out] []
     ]

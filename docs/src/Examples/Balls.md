@@ -195,7 +195,7 @@ wallThickness = 0.20
 -- walls and floor of the room.
 walls : Shape
 walls =
-  let hwt = wallThickness / 2
+  let hwt := wallThickness / 2
    in polyLine [(-hwt, 0), (-hwt, w+hwt), (w+hwt,w+hwt), (w+hwt,0)]
 ```
 
@@ -223,12 +223,13 @@ content : Node BallsEv
 content =
   div [ class ballsContent ]
     [ lbl "Number of balls:" lblCount
-    , input [ Id txtCount
-            , onInput (NumIn . read)
-            , onEnterDown Run
-            , class widget
-            , placeholder "Range: [\{show MinBalls}, \{show MaxBalls}]"
-            ] []
+    , input
+        [ Id txtCount
+        , onInput (NumIn . read)
+        , onEnterDown Run
+        , class widget
+        , placeholder "Range: [\{show MinBalls}, \{show MaxBalls}]"
+        ] []
     , button [Id btnRun, onClick Run, disabled True, classes [widget,btn]] ["Run"]
     , div [Id log] []
     , canvas [Id out, width wcanvas, height wcanvas] []
@@ -262,9 +263,9 @@ checkBounds b@(MkBall c [px,py] [vx,vy]) =
 -- by adjusting its position and velocity
 nextBall : DTime -> Ball -> Ball
 nextBall delta (MkBall c p v) =
-  let dt   = cast delta / the Double 1000 -- time in seconds
-      v2   = v + (dt * acc)
-      p2   = p + (dt / 2 * (v + v2))
+  let dt := cast delta / the Double 1000 -- time in seconds
+      v2 := v + (dt * acc)
+      p2 := p + (dt / 2 * (v + v2))
    in checkBounds (MkBall c p2 v2)
 ```
 
@@ -276,23 +277,25 @@ slightly different colors and starting velocities:
 ```idris
 initialBalls : NumBalls -> List Ball
 initialBalls (B n) = go (cast n) Nil
-  where col : Bits8 -> Color
-        col 0 = comp100
-        col 1 = comp80
-        col 2 = comp60
-        col 3 = comp40
-        col _ = comp20
 
-        ball : Nat -> Ball
-        ball k =
-          let factor = cast {to = Double} k / (cast n - 1.0)
-              phi    = pi * factor
-              x0     = 1.0 + factor * 8
-           in MkBall (col $ cast k `mod` 5) [x0,9] (v0 * [sin phi, cos phi])
+  where
+    col : Bits8 -> Color
+    col 0 = comp100
+    col 1 = comp80
+    col 2 = comp60
+    col 3 = comp40
+    col _ = comp20
 
-        go : (k : Nat) -> List Ball -> List Ball
-        go 0     bs = bs
-        go (S k) bs = go k $ ball k :: bs
+    ball : Nat -> Ball
+    ball k =
+      let factor := cast {to = Double} k / (cast n - 1.0)
+          phi    := pi * factor
+          x0     := 1.0 + factor * 8
+       in MkBall (col $ cast k `mod` 5) [x0,9] (v0 * [sin phi, cos phi])
+
+    go : (k : Nat) -> List Ball -> List Ball
+    go 0     bs = bs
+    go (S k) bs = go k $ ball k :: bs
 ```
 
 Adjusting the state involves some fiddling with the FPS counter.

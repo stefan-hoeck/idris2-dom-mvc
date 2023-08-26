@@ -8,7 +8,7 @@ record Widget where
   0 St : Type
   0 Ev : Type
   init : St
-  setup : Cmd Ev
+  setup : St -> Cmd Ev
   update : Ev -> St -> St
   display : Ev -> St -> Cmd Ev
 
@@ -18,9 +18,9 @@ Semigroup Widget where
     { St = (w1.St, w2.St)
     , Ev = Either w1.Ev w2.Ev
     , init = (w1.init, w2.init)
-    , setup = batch
-        [ Left <$> w1.setup
-        , Right <$> w2.setup
+    , setup = \(s1, s2) => batch
+        [ Left <$> w1.setup s1
+        , Right <$> w2.setup s2
         ]
     , update = \ev, (s1, s2) => case ev of
         Left  ev1 => (w1.update ev1 s1, s2)
@@ -50,4 +50,4 @@ runWidget onError w = runMVC update display onError Nothing w.init
     update (Just ev) = w.update ev
 
     display : Maybe w.Ev -> w.St -> Cmd (Maybe w.Ev)
-    display ev s = Just <$> maybe (const w.setup) w.display ev s
+    display ev s = Just <$> maybe w.setup w.display ev s

@@ -2,6 +2,8 @@ module Web.MVC.Widget
 
 import Web.MVC
 
+%default total
+
 public export
 record Widget where
   constructor MkWidget
@@ -42,6 +44,7 @@ Monoid Widget where
     }
 
 export
+covering
 runWidget : (JSErr -> IO ()) -> Widget -> IO ()
 runWidget onError w = runMVC update display onError Nothing w.init
   where

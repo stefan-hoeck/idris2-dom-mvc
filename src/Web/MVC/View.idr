@@ -254,6 +254,11 @@ export
 attr : Ref t -> Attribute t e -> Cmd e
 attr r a = C $ \h => castElementByRef r >>= \el => setAttribute h el a
 
+||| Sets the `checked` property of the given element
+export
+checked : Ref Tag.Input -> Bool -> Cmd e
+checked r b = C $ \h => castElementByRef r >>= (HTMLInputElement.checked =. b)
+
 ||| Sets the `disabled` attribute of the given element
 export %inline
 disabled : Ref t -> Bool -> Cmd e

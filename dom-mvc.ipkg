@@ -41,6 +41,7 @@ modules    = Data.Queue
            , Web.MVC.Http
            , Web.MVC.Util
            , Web.MVC.View
+           , Web.MVC.Widget
 
            , Web.MVC.Canvas
            , Web.MVC.Canvas.Angle

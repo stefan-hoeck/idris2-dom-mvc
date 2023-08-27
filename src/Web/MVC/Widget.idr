@@ -14,7 +14,7 @@ record Widget where
   update : Ev -> St -> St
   display : Ev -> St -> Cmd Ev
 
-export
+public export
 Semigroup Widget where
   w1 <+> w2 = MkWidget
     { St = (w1.St, w2.St)
@@ -32,7 +32,7 @@ Semigroup Widget where
         Right ev => Right <$> w2.display ev s2
     }
 
-export
+public export
 Monoid Widget where
   neutral = MkWidget
     { St = ()

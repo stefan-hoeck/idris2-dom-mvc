@@ -59,9 +59,6 @@ public export
 data App = Reset | Perf | Req | Balls | Fract | Math
 
 %runElab derive "App" [Show,Eq,Finite]
-
-toApp : String -> App
-toApp s = fromMaybe Reset $ find ((s ==) . show) values
 ```
 
 Here is the layout of the main page:
@@ -82,7 +79,7 @@ content ini =
       , div [class contentHeader]
           [ label [class widgetLabel] ["Choose an Example"]
           , selectFromList values (Just ini) appName id
-              [classes [widget, selectIn, exampleSelector], onChange toApp]
+              [classes [widget, selectIn, exampleSelector]]
           ]
       , div [Id exampleDiv] []
       ]
@@ -127,8 +124,7 @@ only part of the main web page that is not static.
 Finally, we also encode the events an element fires in the `Node`
 type, and that's what `Node`'s parameter stands for. Events are
 just attributes, and in the example above, the `select` element
-fires an `App` event whenever the user changes the selected value
-(`onChange toApp`).
+fires an `App` event whenever the user changes the selected value.
 
 ## The Interactive Part: Handling Events
 

@@ -9,14 +9,9 @@ import Web.Html
 
 %default total
 
-%hide Types.TextMetrics
-
 --------------------------------------------------------------------------------
 --          Text Metrics
 --------------------------------------------------------------------------------
-
-export
-data TextMetrics : Type where [external]
 
 %foreign "browser:lambda:(x,a)=>x.measureText(a)"
 prim__measure : CanvasRenderingContext2D -> String -> PrimIO TextMetrics

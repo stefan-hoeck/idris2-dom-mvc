@@ -11,11 +11,67 @@ import Web.Html
 
 %hide Types.TextMetrics
 
+--------------------------------------------------------------------------------
+--          Text Metrics
+--------------------------------------------------------------------------------
+
 export
 data TextMetrics : Type where [external]
 
 %foreign "browser:lambda:(x,a)=>x.measureText(a)"
 prim__measure : CanvasRenderingContext2D -> String -> PrimIO TextMetrics
+
+export
+%foreign "browser:lambda:x=>x.actualBoundingBoxAscent"
+actualBoundingBoxAscent : TextMetrics -> Double
+
+export
+%foreign "browser:lambda:x=>x.actualBoundingBoxDescent"
+actualBoundingBoxDescent : TextMetrics -> Double
+
+export
+%foreign "browser:lambda:x=>x.actualBoundingBoxLeft"
+actualBoundingBoxLeft : TextMetrics -> Double
+
+export
+%foreign "browser:lambda:x=>x.actualBoundingBoxRight"
+actualBoundingBoxRight : TextMetrics -> Double
+
+export
+%foreign "browser:lambda:x=>x.alphabeticBaseline"
+alphabeticBaseline : TextMetrics -> Double
+
+export
+%foreign "browser:lambda:x=>x.emHeightAscent"
+emHeightAscent : TextMetrics -> Double
+
+export
+%foreign "browser:lambda:x=>x.emHeightDescent"
+emHeightDescent : TextMetrics -> Double
+
+export
+%foreign "browser:lambda:x=>x.fontBoundingBoxAscent"
+fontBoundingBoxAscent : TextMetrics -> Double
+
+export
+%foreign "browser:lambda:x=>x.fontBoundingBoxDescent"
+fontBoundingBoxDescent : TextMetrics -> Double
+
+export
+%foreign "browser:lambda:x=>x.hangingBaseline"
+hangingBaseline : TextMetrics -> Double
+
+export
+%foreign "browser:lambda:x=>x.ideographicBaseline"
+ideographicBaseline : TextMetrics -> Double
+
+export
+%foreign "browser:lambda:x=>x.width"
+width : TextMetrics -> Double
+
+--------------------------------------------------------------------------------
+--          Scene
+--------------------------------------------------------------------------------
 
 public export
 data Scene : Type where

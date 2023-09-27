@@ -9,10 +9,19 @@ import Web.Html
 
 %default total
 
+%hide Types.TextMetrics
+
+export
+data TextMetrics : Type where [external]
+
+%foreign "browser:lambda:(x,a)=>x.measureText(a)"
+prim__measure : CanvasRenderingContext2D -> String -> PrimIO TextMetrics
+
 public export
 data Scene : Type where
   S1 : (fs : List Style) -> (tr : Transformation) -> (shape : Shape) -> Scene
   SM : (fs : List Style) -> (tr : Transformation) -> List Scene -> Scene
+  ST : (txt, font  : String) -> (TextMetrics -> Scene) -> Scene
 
 --------------------------------------------------------------------------------
 --          IO
@@ -39,3 +48,10 @@ apply ctxt (SM fs tr xs) = do
   apply    ctxt tr
   applyAll ctxt xs
   restore  ctxt
+
+apply ctxt (ST txt fnt f) = do
+  save ctxt
+  font ctxt .= fnt
+  m <- liftIO $ fromPrim (prim__measure ctxt txt)
+  restore ctxt
+  apply ctxt (f m)

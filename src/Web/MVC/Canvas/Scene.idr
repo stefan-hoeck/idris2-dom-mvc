@@ -72,7 +72,7 @@ public export
 data Scene : Type where
   S1 : (fs : List Style) -> (tr : Transformation) -> (shape : Shape) -> Scene
   SM : (fs : List Style) -> (tr : Transformation) -> List Scene -> Scene
-  ST : (txt, font  : String) -> (TextMetrics -> Scene) -> Scene
+  ST : (fs : List Style) -> (tr : Transformation) -> (txt : String) -> (TextMetrics -> Scene) -> Scene
 
 --------------------------------------------------------------------------------
 --          IO
@@ -100,9 +100,10 @@ apply ctxt (SM fs tr xs) = do
   applyAll ctxt xs
   restore  ctxt
 
-apply ctxt (ST txt fnt f) = do
+apply ctxt (ST fs tr txt f) = do
   save ctxt
-  font ctxt .= fnt
+  traverseList_ (apply ctxt) fs
+  apply    ctxt tr
   m <- liftIO $ fromPrim (prim__measure ctxt txt)
-  restore ctxt
   apply ctxt (f m)
+  restore ctxt

@@ -9,10 +9,70 @@ import Web.Html
 
 %default total
 
+--------------------------------------------------------------------------------
+--          Text Metrics
+--------------------------------------------------------------------------------
+
+%foreign "browser:lambda:(x,a)=>x.measureText(a)"
+prim__measure : CanvasRenderingContext2D -> String -> PrimIO TextMetrics
+
+export
+%foreign "browser:lambda:x=>x.actualBoundingBoxAscent"
+actualBoundingBoxAscent : TextMetrics -> Double
+
+export
+%foreign "browser:lambda:x=>x.actualBoundingBoxDescent"
+actualBoundingBoxDescent : TextMetrics -> Double
+
+export
+%foreign "browser:lambda:x=>x.actualBoundingBoxLeft"
+actualBoundingBoxLeft : TextMetrics -> Double
+
+export
+%foreign "browser:lambda:x=>x.actualBoundingBoxRight"
+actualBoundingBoxRight : TextMetrics -> Double
+
+export
+%foreign "browser:lambda:x=>x.alphabeticBaseline"
+alphabeticBaseline : TextMetrics -> Double
+
+export
+%foreign "browser:lambda:x=>x.emHeightAscent"
+emHeightAscent : TextMetrics -> Double
+
+export
+%foreign "browser:lambda:x=>x.emHeightDescent"
+emHeightDescent : TextMetrics -> Double
+
+export
+%foreign "browser:lambda:x=>x.fontBoundingBoxAscent"
+fontBoundingBoxAscent : TextMetrics -> Double
+
+export
+%foreign "browser:lambda:x=>x.fontBoundingBoxDescent"
+fontBoundingBoxDescent : TextMetrics -> Double
+
+export
+%foreign "browser:lambda:x=>x.hangingBaseline"
+hangingBaseline : TextMetrics -> Double
+
+export
+%foreign "browser:lambda:x=>x.ideographicBaseline"
+ideographicBaseline : TextMetrics -> Double
+
+export
+%foreign "browser:lambda:x=>x.width"
+width : TextMetrics -> Double
+
+--------------------------------------------------------------------------------
+--          Scene
+--------------------------------------------------------------------------------
+
 public export
 data Scene : Type where
   S1 : (fs : List Style) -> (tr : Transformation) -> (shape : Shape) -> Scene
   SM : (fs : List Style) -> (tr : Transformation) -> List Scene -> Scene
+  ST : (fs : List Style) -> (tr : Transformation) -> (txt : String) -> (TextMetrics -> Scene) -> Scene
 
 --------------------------------------------------------------------------------
 --          IO
@@ -39,3 +99,11 @@ apply ctxt (SM fs tr xs) = do
   apply    ctxt tr
   applyAll ctxt xs
   restore  ctxt
+
+apply ctxt (ST fs tr txt f) = do
+  save ctxt
+  traverseList_ (apply ctxt) fs
+  apply    ctxt tr
+  m <- liftIO $ fromPrim (prim__measure ctxt txt)
+  apply ctxt (f m)
+  restore ctxt

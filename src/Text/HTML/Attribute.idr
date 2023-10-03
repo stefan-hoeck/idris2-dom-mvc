@@ -369,6 +369,22 @@ export %inline
 onDblClick : ev -> Attribute t ev
 onDblClick = dblClick . const . Just
 
+export %inline
+onMouseEnter : ev -> Attribute t ev
+onMouseEnter = Event . MouseEnter . const . Just
+
+export %inline
+onMouseLeave : ev -> Attribute t ev
+onMouseLeave = Event . MouseLeave . const . Just
+
+export %inline
+onMouseOver : ev -> Attribute t ev
+onMouseOver = Event . MouseOver . const . Just
+
+export %inline
+onMouseOut : ev -> Attribute t ev
+onMouseOut = Event . MouseOut . const . Just
+
 export
 onChange : (String -> ev) -> Attribute t ev
 onChange f = Event . Change $ Just . f . value

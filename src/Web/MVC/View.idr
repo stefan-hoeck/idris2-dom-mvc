@@ -306,3 +306,8 @@ render r = renderWithDims r . const
 export %inline
 focus : Ref t -> Cmd e
 focus r = cmd_ (castElementByRef {t = HTMLElement} r >>= HTMLOrSVGElement.focus)
+
+||| Blur (lose focus on) the given HTMLElemet
+export %inline
+blur : Ref t -> Cmd e
+blur r = cmd_ (castElementByRef {t = HTMLElement} r >>= HTMLOrSVGElement.blur)

@@ -8,13 +8,15 @@ import Web.Html
 
 public export
 data Style : Type where
-  Fill         : Color -> Style
-  Stroke       : Color -> Style
-  LineWidth    : Double -> Style
-  Font         : String -> Style
-  Direction    : CanvasDirection -> Style
-  TextAlign    : CanvasTextAlign -> Style
-  TextBaseline : CanvasTextBaseline -> Style
+  Fill           : Color -> Style
+  Stroke         : Color -> Style
+  LineWidth      : Double -> Style
+  SetLineDash    : List Double -> Style
+  LineDashOffset : Double -> Style
+  Font           : String -> Style
+  Direction      : CanvasDirection -> Style
+  TextAlign      : CanvasTextAlign -> Style
+  TextBaseline   : CanvasTextBaseline -> Style
 
 --------------------------------------------------------------------------------
 --          IO
@@ -22,10 +24,12 @@ data Style : Type where
 
 export
 apply : CanvasRenderingContext2D -> Style -> JSIO ()
-apply ctxt (Fill c)         = fillStyle ctxt    .= inject (interpolate c)
-apply ctxt (Stroke c)       = strokeStyle ctxt  .= inject (interpolate c)
-apply ctxt (LineWidth v)    = lineWidth ctxt    .= v
-apply ctxt (Font v)         = font ctxt         .= v
-apply ctxt (Direction v)    = direction ctxt    .= v
-apply ctxt (TextAlign v)    = textAlign ctxt    .= v
-apply ctxt (TextBaseline v) = textBaseline ctxt .= v
+apply ctxt (Fill c)           = fillStyle ctxt      .= inject (interpolate c)
+apply ctxt (Stroke c)         = strokeStyle ctxt    .= inject (interpolate c)
+apply ctxt (LineWidth v)      = lineWidth ctxt      .= v
+apply ctxt (SetLineDash vs)   = fromListIO vs >>= setLineDash ctxt
+apply ctxt (LineDashOffset v) = lineDashOffset ctxt .= v
+apply ctxt (Font v)           = font ctxt           .= v
+apply ctxt (Direction v)      = direction ctxt      .= v
+apply ctxt (TextAlign v)      = textAlign ctxt      .= v
+apply ctxt (TextBaseline v)   = textBaseline ctxt   .= v

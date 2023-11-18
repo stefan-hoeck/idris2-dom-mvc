@@ -402,6 +402,10 @@ onInput : (String -> ev) -> Attribute t ev
 onInput f = Event . Input $ Just . f . value
 
 export
+onScroll : (ScrollInfo -> ev) -> Attribute t ev
+onScroll f = Event . Scroll $ Just . f
+
+export
 onEnterDown : ev -> Attribute t ev
 onEnterDown va = Event . KeyDown $ \k => toMaybe (k.key == "Enter") va
 

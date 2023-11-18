@@ -62,6 +62,15 @@ changeInfo e =
        ((1 ==) <$> primIO (prim__checked e)) |]
 
 export
+scrollInfo : UIEvent -> JSIO ScrollInfo
+scrollInfo e = do
+  Just et <- target e          | Nothing => pure $ MkScrollInfo 0 0 0
+  case castTo Element et of
+    Nothing => pure $ MkScrollInfo 0 0 0
+    Just x =>
+      [| MkScrollInfo (get x scrollTop) (scrollHeight x) (clientHeight x) |]
+
+export
 wheelInfo : WheelEvent -> JSIO WheelInfo
 wheelInfo e =
   [| MkWheelInfo

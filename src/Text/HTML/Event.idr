@@ -60,6 +60,13 @@ record KeyInfo where
   meta        : Bool
   shift       : Bool
 
+public export
+record ScrollInfo where
+  constructor MkScrollInfo
+  scrollTop    : Double
+  scrollHeight : Int32
+  clientHeight : Int32
+
 
 --------------------------------------------------------------------------------
 --          Events
@@ -95,8 +102,11 @@ data DOMEvent : Type -> Type where
   -- Routing
   HashChange : a -> DOMEvent a
 
+  -- Scrolling
+  Scroll     : (ScrollInfo -> Maybe a) -> DOMEvent a
+
   -- Wheel
-  Wheel      : (WheelInfo -> Maybe a) -> DOMEvent a
+  Wheel      : (WheelInfo -> Maybe a)  -> DOMEvent a
 
 export
 Functor DOMEvent where
@@ -116,4 +126,5 @@ Functor DOMEvent where
   map f (Change g)     = Change (map f . g)
   map f (Input g)      = Input (map f . g)
   map f (HashChange x) = HashChange (f x)
+  map f (Scroll g)     = Scroll (map f . g)
   map f (Wheel g)      = Wheel (map f . g)

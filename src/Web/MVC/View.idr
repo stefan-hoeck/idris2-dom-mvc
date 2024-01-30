@@ -33,7 +33,7 @@ registerDOMEvent :
   -> DOMEvent e
   -> JSIO ()
 registerDOMEvent h prev stop el de = case de of
-  Input f      => inst "input" inputInfo f
+  Input f      => inst "input" changeInfo f
   Change f     => inst "change" changeInfo f
   Click f      => inst "click" mouseInfo f
   DblClick f   => inst "dblclick" mouseInfo f

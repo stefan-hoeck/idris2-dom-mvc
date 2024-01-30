@@ -2,6 +2,7 @@ module Text.HTML.Event
 
 import Data.Contravariant
 import Data.Maybe
+import Web.Internal.FileTypes
 
 %default total
 
@@ -44,6 +45,7 @@ public export
 record InputInfo where
   constructor MkInputInfo
   value   : String
+  files   : List File
   checked : Bool
 
 public export

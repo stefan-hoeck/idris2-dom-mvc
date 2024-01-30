@@ -13,6 +13,23 @@ prim__input : Event -> PrimIO String
 %foreign "browser:lambda:x=>x.target.checked?1:0"
 prim__checked : Event -> PrimIO Bits8
 
+%foreign "browser:lambda:x=>x.target.files || []"
+prim__files : Event -> PrimIO FileList
+
+%foreign "browser:lambda:x=>x.length"
+prim__length : FileList -> PrimIO Bits32
+
+%foreign "browser:lambda:(x,y)=>x[y]"
+prim__item : FileList -> Bits32 -> File
+
+files : Event -> JSIO (List File)
+files e = do
+  fs <- primIO (prim__files e)
+  l  <- primIO (prim__length fs)
+  pure $ case l of
+    0 => []
+    x => prim__item fs <$> [0..x-1]
+
 export
 mouseInfo : MouseEvent -> JSIO MouseInfo
 mouseInfo e =
@@ -48,18 +65,16 @@ keyInfo e =
   |]
 
 export
-inputInfo : InputEvent -> JSIO InputInfo
-inputInfo e =
-  [| MkInputInfo
-       (primIO (prim__input $ up e))
-       ((1 ==) <$> primIO (prim__checked $ up e)) |]
-
-export
 changeInfo : Event -> JSIO InputInfo
 changeInfo e =
   [| MkInputInfo
        (primIO (prim__input e))
+       (files e)
        ((1 ==) <$> primIO (prim__checked e)) |]
+
+export
+inputInfo : InputEvent -> JSIO InputInfo
+inputInfo e = changeInfo $ up e
 
 export
 scrollInfo : UIEvent -> JSIO ScrollInfo

@@ -74,7 +74,7 @@ bodyHeaders : RequestBody -> List Header
 bodyHeaders Empty            = []
 bodyHeaders (StringBody m _) = [("Content-Type", m)]
 bodyHeaders (JSONBody x)     = [("Content-Type", "application/json")]
-bodyHeaders (FormBody x)     = [("Content-Type", "multipart/form-data")]
+bodyHeaders (FormBody x)     = []
 
 append : FormData -> Part -> JSIO ()
 append fd (StringPart name value) = FormData.append  fd name value

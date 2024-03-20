@@ -1,7 +1,7 @@
-package dom-mvc
+package dom-mvc-extra
 version    = 0.0.1
 authors    = "stefan-hoeck"
-brief      = "Single page web applications"
+brief      = "Additional utilities for writing web applications"
 
 depends    = dom-mvc
            , monocle

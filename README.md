@@ -38,3 +38,15 @@ to install and maintain the required dependencies and build the project.
 If you have installed pack as suggested above,
 you can build the example page with `make page` and have a look at
 it by loading `mvc.html` into your browser.
+
+## Package `dom-mvc-extra`
+
+This additional library contains an opinionated set of utilities I find
+generally useful in my own projects. It takes a slightly different
+approach towards the "model, view, update" concept, by introducing
+stateful computations (from `Control.Monad.State`) paired with optics
+(from `idris2-monocle`) for operating on smaller parts of a large
+application state.
+
+In addition, it introduces several new data types and interactive DOM
+elements that I typically like to have around.

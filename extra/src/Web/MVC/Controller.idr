@@ -151,3 +151,31 @@ public export
 dummy : n -> Editor i () Void n
 dummy v =
   E (\_,_ => neutral) (\_,_ => Empty) (\_,_ => neutral) (\_ => Right v) (\_ => ())
+
+--------------------------------------------------------------------------------
+--          Utilities
+--------------------------------------------------------------------------------
+
+export %inline
+divChildren : Cast t DomID => t -> List (Node e) -> Cmd e
+divChildren = children . divRef
+
+export %inline
+divChild : Cast t DomID => t -> Node e -> Cmd e
+divChild = child . divRef
+
+export %inline
+divAppend : Cast t DomID => t -> Node e -> Cmd e
+divAppend = append . divRef
+
+export %inline
+divPrepend : Cast t DomID => t -> Node e -> Cmd e
+divPrepend = prepend . divRef
+
+export %inline
+clearDiv : Cast t DomID => t -> Cmd e
+clearDiv v = divChildren v []
+
+export %inline
+removeDiv : Cast t DomID => t -> Cmd e
+removeDiv = remove . divRef

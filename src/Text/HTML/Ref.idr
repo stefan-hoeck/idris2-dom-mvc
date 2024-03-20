@@ -17,6 +17,8 @@ data Ref : {0 k : Type} -> (t : k) -> Type where
      -> (id    : String)
      -> Ref tpe
 
+  Elem     : String -> Ref Void
+
   Body     : Ref Void
 
   Document : Ref Void

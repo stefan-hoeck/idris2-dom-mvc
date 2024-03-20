@@ -71,6 +71,10 @@ export %inline
 tagRef : {s : _} -> (0 tag : HTMLTag s) -> Cast t DomID => t -> Ref tag
 tagRef _ v = Id (value $ cast v)
 
+export %inline
+elemRef : Cast t DomID => t -> Ref Void
+elemRef v = Elem (value $ cast v)
+
 ||| Identifier for accessing a `<button>` element
 export %inline
 btnRef : Cast t DomID => t -> Ref Tag.Button

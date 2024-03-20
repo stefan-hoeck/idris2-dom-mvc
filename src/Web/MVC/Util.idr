@@ -14,6 +14,7 @@ import public Text.HTML.Tag
 public export
 0 ElemType : Ref t -> Type
 ElemType (Id _)   = HTMLElement
+ElemType (Elem _) = HTMLElement
 ElemType Body     = HTMLElement
 ElemType Document = Document
 ElemType Window   = Window
@@ -27,11 +28,12 @@ ElemType Window   = Window
 ||| an exception in the `JSIO` monad if the element is not found
 ||| or can't be safely cast to the desired type.
 export
-strictGetElementById : SafeCast t => (tag,id : String) -> JSIO t
-strictGetElementById tag id = do
+strictGetElementById : SafeCast t => Maybe String -> (id : String) -> JSIO t
+strictGetElementById mtag id = do
   Nothing <- castElementById t id | Just t => pure t
   liftJSIO $ throwError $
-    Caught "Web.MVC.Output.strictGetElementById: Could not find \{tag} with id \{id}"
+    let tag := fromMaybe "element" mtag
+     in Caught "Web.MVC.Output.strictGetElementById: Could not find \{tag} with id \{id}"
 
 ||| Tries to retrieve a HTMLElement by looking
 ||| up its ID in the DOM. Unlike `getElementById`, this will throw
@@ -39,7 +41,7 @@ strictGetElementById tag id = do
 ||| or can't be safely cast to the desired type.
 export %inline
 strictGetHTMLElementById : (tag,id : String) -> JSIO HTMLElement
-strictGetHTMLElementById = strictGetElementById
+strictGetHTMLElementById = strictGetElementById . Just
 
 ||| Tries to retrieve an element of the given type by looking
 ||| up its ID in the DOM. Unlike `getElementById`, this will throw
@@ -47,7 +49,8 @@ strictGetHTMLElementById = strictGetElementById
 ||| or can't be safely cast to the desired type.
 export
 getElementByRef : (r : Ref t) -> JSIO (ElemType r)
-getElementByRef (Id {tag} id) = strictGetElementById tag id
+getElementByRef (Id {tag} id) = strictGetElementById (Just tag) id
+getElementByRef (Elem id)     = strictGetElementById Nothing id
 getElementByRef Body          = body
 getElementByRef Document      = document
 getElementByRef Window        = window
@@ -61,7 +64,8 @@ err = "Web.MVC.Output.castElementByRef"
 ||| or can't be safely cast to the desired type.
 export
 castElementByRef : {0 x : k} -> SafeCast t => Ref x -> JSIO t
-castElementByRef (Id {tag} id) = strictGetElementById tag id
+castElementByRef (Id {tag} id) = strictGetElementById (Just tag) id
+castElementByRef (Elem id)     = strictGetElementById Nothing id
 castElementByRef Body          = body >>= tryCast err
 castElementByRef Document      = document >>= tryCast err
 castElementByRef Window        = window >>= tryCast err

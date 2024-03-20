@@ -157,25 +157,29 @@ dummy v =
 --------------------------------------------------------------------------------
 
 export %inline
-divChildren : Cast t DomID => t -> List (Node e) -> Cmd e
-divChildren = children . divRef
+elemChildren : Cast t DomID => t -> List (Node e) -> Cmd e
+elemChildren = children . elemRef
 
 export %inline
-divChild : Cast t DomID => t -> Node e -> Cmd e
-divChild = child . divRef
+elemChild : Cast t DomID => t -> Node e -> Cmd e
+elemChild = child . elemRef
 
 export %inline
-divAppend : Cast t DomID => t -> Node e -> Cmd e
-divAppend = append . divRef
+elemAppend : Cast t DomID => t -> Node e -> Cmd e
+elemAppend = append . elemRef
 
 export %inline
-divPrepend : Cast t DomID => t -> Node e -> Cmd e
-divPrepend = prepend . divRef
+elemPrepend : Cast t DomID => t -> Node e -> Cmd e
+elemPrepend = prepend . elemRef
 
 export %inline
-clearDiv : Cast t DomID => t -> Cmd e
-clearDiv v = divChildren v []
+clearElem : Cast t DomID => t -> Cmd e
+clearElem v = elemChildren v []
 
 export %inline
-removeDiv : Cast t DomID => t -> Cmd e
-removeDiv = remove . divRef
+removeElem : Cast t DomID => t -> Cmd e
+removeElem = remove . elemRef
+
+export %inline
+btnAttr : Cast t DomID => t -> Attribute Tag.Button e -> Cmd e
+btnAttr v = attr (btnRef v)

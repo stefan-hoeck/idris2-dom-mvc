@@ -92,6 +92,12 @@ Functor (Attribute t) where
   map f (Event_ pd sp e) = Event_ pd sp $ map f e
   map f Empty            = Empty
 
+||| Optional attribute that is set to `Empty` if the given `Bool` is `False`
+export
+attrIf : Bool -> Lazy (Attribute t e) -> Attribute t e
+attrIf True n  = n
+attrIf False _ = Empty
+
 public export
 Attributes : {0 k : _} -> (t : k) -> Type -> Type
 Attributes t e = List (Attribute t e)

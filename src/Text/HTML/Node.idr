@@ -35,6 +35,12 @@ Functor Node where
   map f (Text str)     = Text str
   map f Empty          = Empty
 
+||| An optional node that is set to `Empty` if the given `Bool` is `False`.
+export
+nodeIf : Bool -> Lazy (Node e) -> Node e
+nodeIf True n  = n
+nodeIf False _ = Empty
+
 ||| Prepend a non-event attribute to a node's list of attributes.
 export
 withAttribute :

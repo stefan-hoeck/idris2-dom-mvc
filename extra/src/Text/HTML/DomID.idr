@@ -29,6 +29,11 @@ export %inline
 withDomID : Cast t DomID => t -> Node e -> Node e
 withDomID = withId . value . toID
 
+||| Set the `for` attribute of a DOM label to the given ID.
+export %inline
+forID : Cast t DomID => t -> Attribute x e
+forID = for . value . toID
+
 --------------------------------------------------------------------------------
 -- Implementations
 --------------------------------------------------------------------------------

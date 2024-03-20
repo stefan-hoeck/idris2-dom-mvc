@@ -8,12 +8,26 @@ import Text.HTML
 %language ElabReflection
 
 ||| Utility data type for accessing elements in the DOM.
+|||
+||| This will improve type safety and give clearer semantics to a string
+||| that is to be used as an identifier in the DOM.
 public export
 record DomID where
   constructor D
   value : String
 
 %runElab derive "DomID" [Show,Eq,Ord,FromString]
+
+||| Alias for `cast` with better type inference.
+export %inline
+toID : Cast t DomID => t -> DomID
+toID = cast
+
+||| Specialized version of `withId` (which sets the `id` attribute of a
+||| node) for working with `DomID`s.
+export %inline
+withDomID : Cast t DomID => t -> Node e -> Node e
+withDomID = withId . value . toID
 
 --------------------------------------------------------------------------------
 -- Implementations

@@ -103,24 +103,26 @@ run f = runController (\ev,st => runState st (f ev)) (putStrLn . dispErr)
 ||| values), its functions take a `DomID` as additional input, to distinguish
 ||| between the different versions of the widget that are around.
 |||
+||| @i   : The ID type used to identify DOM elements
+|||
 ||| @st  : The type used to internally store the current widget state
 |||
 ||| @ev  : The event type the widget fires.
 |||
 ||| @new : The type of data we can extract from the widget's internal state.
 public export
-record Editor (st,ev,new : Type) where
+record Editor (i,st,ev,new : Type) where
   constructor E
   ||| Update the inner state based on the current event.
-  ctrl  : DomID -> Controller ev st
+  ctrl  : i -> Controller ev st
 
   ||| Create a widget from a unique identifier and the initial state.
-  view  : DomID -> st -> Node ev
+  view  : i -> st -> Node ev
 
   ||| The initial command use to properly setup the view. This is used
   ||| for initial validation or for drawing molecules to the canvas when
   ||| editing starts. It is invoked after setting up the view.
-  init  : DomID -> st -> Cmd ev
+  init  : i -> st -> Cmd ev
 
   ||| Try to convert the current state to a value of type `new` we can
   ||| send to the server. This implements client-side validation, therefore,
@@ -133,12 +135,12 @@ record Editor (st,ev,new : Type) where
 ||| Tries to convert the current (optional) state of an editor to
 ||| an updated value.
 export
-toNewM : Editor st ev new -> Maybe st -> Maybe new
+toNewM : Editor i st ev new -> Maybe st -> Maybe new
 toNewM ed = (>>= eitherToMaybe . ed.stToNew)
 
 ||| Views the `new` values of an editor through a prism.
 export
-newP : Prism' t s -> Editor st ev s -> Editor st ev t
+newP : Prism' t s -> Editor i st ev s -> Editor i st ev t
 newP p ed =
   { stToNew := map p.reverseGet . ed.stToNew
   , toState := \x => ed.toState $ x >>= first p
@@ -146,6 +148,6 @@ newP p ed =
 
 ||| A dummy `Editor` for uneditable values.
 public export
-dummy : n -> Editor () Void n
+dummy : n -> Editor i () Void n
 dummy v =
   E (\_,_ => neutral) (\_,_ => Empty) (\_,_ => neutral) (\_ => Right v) (\_ => ())

@@ -8,6 +8,7 @@ depends    = dom-mvc
            , barbies
 
 modules    = Web.MVC.Controller
+           , Text.HTML.Class
            , Text.HTML.DomID
 
 sourcedir  = "src"

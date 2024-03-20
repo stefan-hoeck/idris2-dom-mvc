@@ -181,5 +181,9 @@ removeElem : Cast t DomID => t -> Cmd e
 removeElem = remove . elemRef
 
 export %inline
+replaceElem : Cast t DomID => t -> Node e -> Cmd e
+replaceElem = replace . elemRef
+
+export %inline
 btnAttr : Cast t DomID => t -> Attribute Tag.Button e -> Cmd e
 btnAttr v = attr (btnRef v)

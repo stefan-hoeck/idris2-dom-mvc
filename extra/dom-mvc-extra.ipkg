@@ -1,0 +1,13 @@
+package dom-mvc
+version    = 0.0.1
+authors    = "stefan-hoeck"
+brief      = "Single page web applications"
+
+depends    = dom-mvc
+           , monocle
+           , barbies
+
+modules    = Web.MVC.Controller
+           , Text.HTML.DomID
+
+sourcedir  = "src"

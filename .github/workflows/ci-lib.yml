@@ -33,3 +33,5 @@ jobs:
         run: pack install dom-mvc
       - name: Check docs
         run: pack typecheck dom-mvc-docs
+      - name: Check extra
+        run: pack typecheck dom-mvc-extra

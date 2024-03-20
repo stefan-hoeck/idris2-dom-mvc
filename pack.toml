@@ -3,6 +3,11 @@ type   = "local"
 path   = "."
 ipkg   = "dom-mvc.ipkg"
 
+[custom.all.dom-mvc-extra]
+type   = "local"
+path   = "extra"
+ipkg   = "dom-mvc-extra.ipkg"
+
 [custom.all.dom-mvc-docs]
 type   = "local"
 path   = "docs"

@@ -1,10 +1,11 @@
 module Web.MVC.Controller.List
 
+import Data.List1
 import Monocle
-import Web.MVC.Controller
 import Text.HTML
 import Text.HTML.Class
 import Text.HTML.DomID
+import Web.MVC.Controller
 
 %default total
 
@@ -37,6 +38,11 @@ data ListEv : Type -> Type where
 public export
 0 ListEditor : (i,s,e,t : Type) -> Type
 ListEditor i s e t = Editor i (List (Nat,s)) (ListEv e) (List t)
+
+||| Type alias for editors of lists.
+public export
+0 List1Editor : (i,s,e,t : Type) -> Type
+List1Editor i s e t = Editor i (List (Nat,s)) (ListEv e) (List1 t)
 
 ||| Whether to append or prepend items added to the list
 public export
@@ -128,3 +134,21 @@ parameters {0 i,s,e,t : Type}
         pure $ insertCmd li.mode (li.listID u) (row u n s) <+> init u n s
       adj u (Del n) = modify (del n) $> (removeElem $ li.rowID u n)
       adj u (Change n v) = stO (eqFirst n fst .> snd) (ctrl u n v)
+
+  export
+  list1 : (empty : String) -> Editor i s e t -> List1Editor i s e t
+  list1 empty ed =
+    let led := list ed
+     in E led.ctrl led.view led.init toN (toS led)
+
+    where
+      toS : ListEditor i s e t -> Maybe (List1 t) -> List (Nat,s)
+      toS _   Nothing   = [(0,ed.toState Nothing)]
+      toS led (Just vs) = led.toState (Just $ forget vs)
+
+      toN : List (Nat,s) -> Either String (List1 t)
+      toN ps =
+        case traverse (ed.stToNew . snd) ps of
+          Left err => Left err
+          Right (h::t) => Right (h:::t)
+          Right []     => Left empty

@@ -33,6 +33,11 @@ data ListEv : Type -> Type where
   Del    : (ix  : Nat) -> ListEv e
   Change : (ix : Nat) -> (ev : e) -> ListEv e
 
+||| Type alias for editors of lists.
+public export
+0 ListEditor : (i,s,e,t : Type) -> Type
+ListEditor i s e t = Editor i (List (Nat,s)) (ListEv e) (List t)
+
 ||| Whether to append or prepend items added to the list
 public export
 data ListMode = Append | Prepend
@@ -97,7 +102,7 @@ parameters {0 i,s,e,t : Type}
   ||| An editor for lists of values, where values can be dynamically
   ||| added or removed.
   export
-  list : Editor i s e t -> Editor i (List (Nat,s)) (ListEv e) (List t)
+  list : Editor i s e t -> ListEditor i s e t
   list ed =
     E adj
       (values ed.view)

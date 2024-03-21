@@ -8,6 +8,8 @@ depends    = dom-mvc
            , barbies
 
 modules    = Web.MVC.Controller
+           , Web.MVC.Controller.List
+
            , Text.HTML.Class
            , Text.HTML.DomID
 

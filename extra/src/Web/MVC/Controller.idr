@@ -132,6 +132,11 @@ record Editor (i,st,ev,new : Type) where
   ||| Create an initial state from an optional value of type `new`
   toState : Maybe new -> st
 
+||| Utility for editors without initial command.
+export %inline
+noInit : i -> s -> Cmd e
+noInit _ _ = neutral
+
 ||| Tries to convert the current (optional) state of an editor to
 ||| an updated value.
 export

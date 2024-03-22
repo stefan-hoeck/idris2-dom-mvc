@@ -21,9 +21,10 @@ record FileEnv (i : Type) where
   [noHints]
   constructor FE
   fileID    : i -> i
-  read      : String -> Either String Body
+  readBody  : String -> Either String Body
   browse    : String
   fileCls   : Class
+  inputCls  : Class
   labelCls  : Class
 
 fromInfo : InputInfo -> Maybe FileEv
@@ -40,7 +41,7 @@ parameters {0      i : Type}
   file uid (Just b) = NameChanged <$> vinp fe.fileCls Text uid "\{b}"
   file uid Nothing  =
     cell fe.fileCls []
-      [ NameChanged <$> vinp fe.fileCls Text (ve.inputID uid) ""
+      [ NameChanged <$> vinp fe.inputCls Text uid ""
       , label [forID (fe.fileID uid), cls Btn fe.labelCls] [Text fe.browse]
       , input
           [ ref $ fe.fileID uid

@@ -35,6 +35,7 @@ parameters {0      i : Type}
       ed.stToNew
       ed.toState
 
+  export
   checkVal : (String -> Either String t) -> String -> Either String t
   checkVal f s =
     case f s of
@@ -60,4 +61,5 @@ parameters {0      i : Type}
     -> (stToNew : String -> Either String new)
     -> (disp    : Maybe new -> String)
     -> Editor i String String new
-  input c tpe f = E (valTextInput f) (vinp c tpe) noInit f
+  input c tpe f =
+    let g := checkVal f in E (valTextInput g) (vinp c tpe) noInit g

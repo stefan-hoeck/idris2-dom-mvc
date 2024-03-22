@@ -24,12 +24,15 @@ parameters {0 i     : Type}
            {auto ve  : ValEnv i}
            {auto fe  : FileEnv i}
 
+  mandatoryBody : String -> Either String Body
+  mandatoryBody = checkVal {i} fe.readBody
+
   fileDisplay : i -> FileEv -> (String, Maybe File) -> Cmd FileEv
   fileDisplay u (NameChanged s)   _     =
-    validate (inpRef $ ve.inputID u) (fe.read s)
+    validate (inpRef $ ve.inputID u) (mandatoryBody s)
   fileDisplay u (FileChanged _ _) (s,_) =
      value (inpRef $ ve.inputID u) s <+>
-     validate (inpRef $ ve.inputID u) (fe.read s)
+     validate (inpRef $ ve.inputID u) (mandatoryBody s)
 
   export %inline
   fileC : i -> Controller FileEv (String, Maybe File)
@@ -38,14 +41,14 @@ parameters {0 i     : Type}
   fileWidget : i -> (String,Maybe File) -> Node FileEv
   fileWidget u ("",_) = file u Nothing
   fileWidget u (s,_)  =
-    case fe.read s of
+    case mandatoryBody s of
       Right b => file u (Just b)
       Left _  => file u Nothing
 
   ||| Specialized version of `input` for entering file names.
   export
   file : Editor i (String,Maybe File) FileEv Body
-  file = E fileC fileWidget noInit (fe.read . fst) ini
+  file = E fileC fileWidget noInit (mandatoryBody . fst) ini
     where
       ini : Maybe Body -> (String,Maybe File)
       ini = (,Nothing) . maybe "" interpolate

@@ -19,6 +19,7 @@ data FileEv : Type where
 public export
 record FileEnv (i : Type) where
   [noHints]
+  constructor FE
   fileID    : i -> i
   read      : String -> Either String Body
   browse    : String

@@ -6,14 +6,17 @@ brief      = "Additional utilities for writing web applications"
 depends    = dom-mvc
            , monocle
            , barbies
+           , filepath
 
 modules    = Web.MVC.Controller
            , Web.MVC.Controller.List
+           , Web.MVC.Controller.File
            , Web.MVC.Controller.Validation
 
            , Text.HTML.Class
-           , Text.HTML.Extra
            , Text.HTML.DomID
+           , Text.HTML.Extra
+           , Text.HTML.File
            , Text.HTML.Validation
 
 sourcedir  = "src"

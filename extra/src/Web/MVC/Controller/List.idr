@@ -59,6 +59,7 @@ insertCmd Prepend = elemPrepend
 ||| Environment for setting up the UI elements
 public export
 record ListEnv (i : Type) where
+  [noHints]
   constructor LI
   ||| ID for a single row
   rowID   : i -> Nat -> i
@@ -84,7 +85,7 @@ record ListEnv (i : Type) where
 
 parameters {0 i,s,e,t : Type}
            {auto cst  : Cast i DomID}
-           (li        : ListEnv i)
+           {auto li   : ListEnv i}
 
   ||| Row for editing a single value in a list of values.
   export

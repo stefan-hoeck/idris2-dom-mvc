@@ -9,7 +9,7 @@ import Web.MVC.Controller
 
 parameters {0      i : Type}
            {auto cst : Cast i DomID}
-           (env      : ValEnv i)
+           {auto env : ValEnv i}
 
   ||| Sets the associated validation text of a validated widget based on
   ||| its current state.
@@ -30,7 +30,7 @@ parameters {0      i : Type}
   validated : Editor i s e n -> Editor i s e n
   validated ed =
     E (\u,v => ed.ctrl u v <+> map (validateState ed.stToNew u) get)
-      (\u,s => validated env u (ed.view u s))
+      (\u,s => validated u (ed.view u s))
       (\u,s => validateState ed.stToNew u s <+> ed.init u s)
       ed.stToNew
       ed.toState
@@ -60,4 +60,4 @@ parameters {0      i : Type}
     -> (stToNew : String -> Either String new)
     -> (disp    : Maybe new -> String)
     -> Editor i String String new
-  input c tpe f = E (valTextInput f) (vinp env c tpe) noInit f
+  input c tpe f = E (valTextInput f) (vinp c tpe) noInit f

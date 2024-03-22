@@ -30,7 +30,7 @@ record ValEnv (i : Type) where
 
 parameters {0      i : Type}
            {auto cst : Cast i DomID}
-           (env      : ValEnv i)
+           {auto env : ValEnv i}
 
   ||| Pairs a widget with an element where validation messages can be
   ||| displayed.

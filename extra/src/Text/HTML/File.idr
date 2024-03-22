@@ -25,27 +25,27 @@ record FileEnv (i : Type) where
   browse    : String
   fileCls   : Class
   labelCls  : Class
-  {auto valEnv : ValEnv i}
-
-export %inline %hint
-fileEnvToValEnv : FileEnv i => ValEnv i
-fileEnvToValEnv @{fe} = fe.valEnv
 
 fromInfo : InputInfo -> Maybe FileEv
 fromInfo (MkInputInfo v [f] checked) = Just (FileChanged f v)
 fromInfo _                           = Nothing
 
-export
-file : (fe : FileEnv i) => i -> Maybe Body -> Node FileEv
-file uid (Just b) = NameChanged <$> vinp fe.fileCls Text uid "\{b}"
-file uid Nothing  =
-  cell fe.fileCls []
-    [ NameChanged <$> vinp fe.fileCls Text (fe.valEnv.inputID uid) ""
-    , label [forID (fe.fileID uid), cls Btn fe.labelCls] [Text fe.browse]
-    , input
-        [ ref $ fe.fileID uid
-        , cls Widget fe.fileCls
-        , type File
-        , Event (Input fromInfo)
-        ] []
-    ]
+parameters {0      i : Type}
+           {auto cst : Cast i DomID}
+           {auto ve  : ValEnv i}
+           {auto fe  : FileEnv i}
+
+  export
+  file : (fe : FileEnv i) => i -> Maybe Body -> Node FileEv
+  file uid (Just b) = NameChanged <$> vinp fe.fileCls Text uid "\{b}"
+  file uid Nothing  =
+    cell fe.fileCls []
+      [ NameChanged <$> vinp fe.fileCls Text (ve.inputID uid) ""
+      , label [forID (fe.fileID uid), cls Btn fe.labelCls] [Text fe.browse]
+      , input
+          [ ref $ fe.fileID uid
+          , cls Widget fe.fileCls
+          , type File
+          , Event (Input fromInfo)
+          ] []
+      ]

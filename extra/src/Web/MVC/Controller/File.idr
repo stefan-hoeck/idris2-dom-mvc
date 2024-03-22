@@ -20,14 +20,16 @@ fileUpdate (NameChanged s)   (_,f) = (s,f)
 fileUpdate (FileChanged f s) _     = (fakeBody s, Just f)
 
 parameters {0 i     : Type}
-           {auto fe : FileEnv i}
+           {auto cst : Cast i DomID}
+           {auto ve  : ValEnv i}
+           {auto fe  : FileEnv i}
 
   fileDisplay : i -> FileEv -> (String, Maybe File) -> Cmd FileEv
   fileDisplay u (NameChanged s)   _     =
-    validate (inpRef $ fe.valEnv.inputID u) (fe.read s)
+    validate (inpRef $ ve.inputID u) (fe.read s)
   fileDisplay u (FileChanged _ _) (s,_) =
-     value (inpRef $ fe.valEnv.inputID u) s <+>
-     validate (inpRef $ fe.valEnv.inputID u) (fe.read s)
+     value (inpRef $ ve.inputID u) s <+>
+     validate (inpRef $ ve.inputID u) (fe.read s)
 
   export %inline
   fileC : i -> Controller FileEv (String, Maybe File)

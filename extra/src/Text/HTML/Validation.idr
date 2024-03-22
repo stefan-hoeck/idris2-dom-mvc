@@ -28,13 +28,8 @@ record ValEnv (i : Type) where
   ||| fields, when they contain only empty (invalid) input.
   mandatory : String
 
-  {auto cst : Cast i DomID}
-
-export %inline %hint
-valEnvToCast : ValEnv i => Cast i DomID
-valEnvToCast @{ve} = ve.cst
-
 parameters {0      i : Type}
+           {auto cst : Cast i DomID}
            {auto env : ValEnv i}
 
   ||| Pairs a widget with an element where validation messages can be

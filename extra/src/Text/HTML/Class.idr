@@ -2,6 +2,7 @@ module Text.HTML.Class
 
 import Derive.Prelude
 import Text.HTML
+import Text.HTML.Select
 import Text.HTML.DomID
 
 %default total
@@ -134,3 +135,44 @@ btn v ev txt as = button (cls Btn v :: onClick ev :: as) [Text txt]
 export %inline
 icon : Class -> e -> List (Attribute Tag.Button e) -> Node e
 icon v ev as = button (cls Icon v :: onClick ev :: as) []
+
+||| A clickable icon with predefined class.
+|||
+||| This takes a `DomID` as additional argument since we want
+||| to be able to disable it in case of invalid input.
+export %inline
+iok : Cast i DomID => i -> e -> Node e
+iok u ev = icon "ok" ev [ref u]
+
+||| A clickable icon with predefined class.
+export %inline
+iadd : e -> Node e
+iadd v = icon "add" v []
+
+||| A clickable icon with predefined class.
+export %inline
+icancel : e -> Node e
+icancel v = icon "cancel" v []
+
+||| A clickable icon with predefined class.
+export %inline
+idelete : e -> Node e
+idelete v = icon "delete" v []
+
+--------------------------------------------------------------------------------
+--          Editing
+--------------------------------------------------------------------------------
+
+||| An `<input>` element of the given class.
+export %inline
+inp : Class -> (String -> e) -> List (Attribute Tag.Input e) -> Node e
+inp v f as = input (cls Inp v :: onInput f :: as) []
+
+||| A select element displaying the values of type `v`
+||| shown in the given list.
+|||
+||| It fires events of type `t`, and uses two functions, one for
+||| converting elements to events and one for displaying elements.
+export %inline
+sel : Eq t => (v -> t) -> (v -> String) -> List v -> Class -> Maybe t -> Node t
+sel f g vs c i = selectFromListBy vs ((i ==) . Just . f) g f [cls Sel c]

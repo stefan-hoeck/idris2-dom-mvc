@@ -85,7 +85,7 @@ record ListEnv (i : Type) where
 
 parameters {0 i,s,e,t : Type}
            {auto cst  : Cast i DomID}
-           {auto li   : ListEnv i}
+           (li        : ListEnv i)
 
   ||| Row for editing a single value in a list of values.
   export

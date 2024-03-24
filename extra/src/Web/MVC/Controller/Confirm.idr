@@ -10,37 +10,45 @@ import Web.MVC.Controller
 
 %default total
 
-parameters {0 i,s,e,t,state : Type}
-           {auto cst : Cast i DomID}
-           (ce       : ConfirmEnv i)
-           (ed       : Editor i s e t)
-           (valL     : Lens' state s)
-           (get      : state -> Maybe t)
+public export
+record ConfirmEnv (i,s,e,t,event,state : Type) where
+  constructor CE
+  conf : ConfirmConfig i
+  ed   : Editor i s e t
+  val  : Lens' state s
+  ini  : state -> Maybe t
+  toEv : ConfirmEv e -> event
+  onOK : t -> State state (Cmd event)
 
-  -- In `Cancel` case, do we need to cleanup?
-  -- In `OK` case, do we cleanup and overwrite the state?
+parameters {0 i,s,e,t,event,state : Type}
+           {auto cst : Cast i DomID}
+           (ce       : ConfirmEnv i s e t event state)
+
   upd : ConfirmEv e -> state -> state
-  upd Begin  st = setL valL (ed.toState $ get st) st
+  upd Begin  st = setL ce.val (ce.ed.toState $ ce.ini st) st
   upd _      st = st
 
   disp : i -> ConfirmEv e -> state -> Cmd (ConfirmEv e)
   disp u Begin  st =
-    let v := ed.toState $ get st
+    let v := ce.ed.toState $ ce.ini st
      in batch
-          [ elemChildren u (dialog ce u $ ed.view u v)
-          , Edited <$> ed.init u v
-          , disabledE (elemRef $ ce.okID u) (ed.stToNew v)
+          [ elemChildren u (dialog ce.conf u $ ce.ed.view u v)
+          , Edited <$> ce.ed.init u v
+          , disabledE (elemRef $ ce.conf.okID u) (ce.ed.stToNew v)
           ]
   disp u Cancel st = clearElem u
   disp u _      st = neutral
 
   export
-  confirm : i -> ConfirmEv e -> State state (Cmd $ ConfirmEv e)
+  confirm : i -> ConfirmEv e -> State state (Cmd event)
   confirm u (Edited ev) = do
-    c1 <- Edited <$$> stL valL (ed.ctrl u ev)
-    c2 <- disabledE (elemRef $ ce.okID u) . ed.stToNew <$> getST valL
+    c1 <- ce.toEv . Edited <$$> stL ce.val (ce.ed.ctrl u ev)
+    c2 <- disabledE (elemRef $ ce.conf.okID u) . ce.ed.stToNew <$> getST ce.val
     pure $ c1 <+> c2
-  confirm u ev          = updateDisp upd (disp u) ev
+  confirm u OK          = do
+    Right vt <- ce.ed.stToNew <$> getST ce.val | Left _ => neutral
+    ce.onOK vt
+  confirm u ev          = ce.toEv <$$> updateDisp upd (disp u) ev
 
 --  editCmd : UILocal => ExpEv e f -> (Cmd $ ExpEv e f)
 --  editCmd CancelAdd = clearElem AddColumn

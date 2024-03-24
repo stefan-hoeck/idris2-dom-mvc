@@ -15,9 +15,9 @@ data ConfirmEv : Type -> Type where
 
 ||| Environment for beginning an editing process.
 public export
-record ConfirmEnv (i : Type) where
+record ConfirmConfig (i : Type) where
   [noHints]
-  constructor CE
+  constructor CC
   title      : String
   titleCls   : Class
   rowCls     : Class
@@ -27,7 +27,7 @@ record ConfirmEnv (i : Type) where
 
 parameters {0 i, e : Type}
            {auto cst : Cast i DomID}
-           (ce  : ConfirmEnv i)
+           (ce  : ConfirmConfig i)
 
   export
   dialog : i -> Node e -> List (Node (ConfirmEv e))

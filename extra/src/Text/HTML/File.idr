@@ -9,7 +9,6 @@ import public Web.Internal.FileTypes
 
 %default total
 
-
 public export
 data FileEv : Type where
   NameChanged : String -> FileEv

@@ -19,6 +19,7 @@ record ConfirmConfig (i : Type) where
   [noHints]
   constructor CC
   title      : String
+  listCls    : Class
   titleCls   : Class
   rowCls     : Class
   okID       : i -> i
@@ -30,9 +31,10 @@ parameters {0 i, e : Type}
            (ce  : ConfirmConfig i)
 
   export
-  dialog : i -> Node e -> List (Node (ConfirmEv e))
+  dialog : i -> Node e -> Node (ConfirmEv e)
   dialog u n =
-    [ div [cls Title ce.titleCls] [Text ce.title]
-    , Edited <$> n
-    , row ce.rowCls [] [ ce.okNode (ce.okID u) OK, ce.cancelNode Cancel]
-    ]
+    list ce.listCls []
+      [ div [cls Title ce.titleCls] [Text ce.title]
+      , Edited <$> n
+      , row ce.rowCls [] [ ce.okNode (ce.okID u) OK, ce.cancelNode Cancel]
+      ]

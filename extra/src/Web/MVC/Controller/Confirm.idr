@@ -32,7 +32,7 @@ parameters {0 i,s,e,t,event,state : Type}
   disp u Begin  st =
     let v := ce.ed.toState $ ce.ini st
      in batch
-          [ elemChildren u (dialog ce.conf u $ ce.ed.view u v)
+          [ elemChild u (dialog ce.conf u $ ce.ed.view u v)
           , Edited <$> ce.ed.init u v
           , disabledE (elemRef $ ce.conf.okID u) (ce.ed.stToNew v)
           ]

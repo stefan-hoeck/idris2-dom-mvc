@@ -28,7 +28,7 @@ runController ctrl onErr initEv initST = Prelude.do
 
         -- Enqueue synchronously fired events if we are already handling
         -- an event
-        False <- readIORef flag | True => modifyIORef queue (enqueue ev)
+        False <- readIORef flag | True => modifyIORef queue (`enqueue` ev)
 
         -- Start handing the event and prevent others from currently
         -- being handled

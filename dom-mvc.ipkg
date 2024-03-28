@@ -5,13 +5,12 @@ brief      = "Single page web applications"
 
 depends    = base      >= 0.6.0
            , dom
+           , containers
            , json-simple
            , refined
            , tailrec
 
-modules    = Data.Queue
-
-           , Text.CSS
+modules    = Text.CSS
            , Text.CSS.Angle
            , Text.CSS.Color
            , Text.CSS.Declaration

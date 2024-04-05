@@ -14,7 +14,7 @@ import public Web.MVC.Cmd
 --          Prog and Controller
 --------------------------------------------------------------------------------
 
-infixr 4 <$$>
+export infixr 4 <$$>
 
 ||| A `Prog` controls some state of type `s` acting on events of
 ||| type `e`.

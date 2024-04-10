@@ -295,6 +295,11 @@ value r s = cmd_ (setValue r s)
 
 ||| Renders a scene at a canvas element
 export %inline
+renderWithMetrics : Ref Tag.Canvas -> (TextMeasure => CanvasDims -> Scene) -> Cmd e
+renderWithMetrics r s = cmd_ (renderWithMetrics r s)
+
+||| Renders a scene at a canvas element
+export %inline
 renderWithDims : Ref Tag.Canvas -> (CanvasDims -> Scene) -> Cmd e
 renderWithDims r s = cmd_ (render r s)
 

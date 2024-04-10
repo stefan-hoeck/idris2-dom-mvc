@@ -64,8 +64,11 @@ export
 %foreign "browser:lambda:x=>x.width"
 width : TextMetrics -> Double
 
-%foreign "browser:lambda:(c,f,s)=>{f1 = c.font; c.font = f; res = c.measureText(s); c.font = f1; return res}"
-prim__measureText : CanvasRenderingContext2D -> (font, text : String) -> TextMetrics
+%foreign "browser:lambda:(c,d,a,b,f,s)=>{d0 = c.direction; b0 = c.textBaseline; a0 = c.textAlign; f0 = c.font; c.font = f; c.direction = d; c.textBaseline = b; c.textAlign = a; res = c.measureText(s); c.font = f0; c.direction = d0; c.textBaseline = b0; c.textAlign = a0; return res}"
+prim__measureText :
+     CanvasRenderingContext2D
+  -> (dir, align, baseline, font, text : String)
+  -> TextMetrics
 
 --------------------------------------------------------------------------------
 --          Scene
@@ -103,16 +106,22 @@ apply ctxt (SM fs tr xs) = do
   restore  ctxt
 
 ||| Utility for computing `TextMetrics`.
-public export
+export
 record TextMeasure where
   [noHints]
   constructor TM
-  measure_ : (font, text : String) -> TextMetrics
+  measure_ : (dir, align, bl, font, text : String) -> TextMetrics
 
 ||| Compute the `TextMetrics` for the given text in the given font.
 export %inline
-measureText : (m : TextMeasure) => (font,text : String) -> TextMetrics
-measureText f t = m.measure_ f t
+measureText :
+     {auto m : TextMeasure}
+  -> CanvasDirection
+  -> CanvasTextAlign
+  -> CanvasTextBaseline
+  -> (font,text : String)
+  -> TextMetrics
+measureText d a b f t = m.measure_ (show d) (show a) (show b) f t
 
 ||| Alternative version of `apply` for those cases where we need to
 ||| work with text metrics.

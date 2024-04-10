@@ -38,13 +38,18 @@ context2D canvas = do
     Just c  => pure c
     Nothing => throwError $ Caught "Web.MVC.Canvas.context2d: No rendering context for canvas"
 
-||| Render a seen in a canvas in the DOM.
+||| Render a scene in a canvas in the DOM.
 export
-render : Ref Canvas -> (CanvasDims -> Scene) -> JSIO ()
-render ref scene = do
+renderWithMetrics : Ref Canvas -> (TextMeasure => CanvasDims -> Scene) -> JSIO ()
+renderWithMetrics ref scene = do
   canvas <- castElementByRef {t = HTMLCanvasElement} ref
   ctxt   <- context2D canvas
   w      <- cast <$> get canvas width
   h      <- cast <$> get canvas height
   apply ctxt $ Rect 0 0 w h Clear
-  apply ctxt (scene (CD w h))
+  applyWithMetrics ctxt (scene (CD w h))
+
+||| Render a scene in a canvas in the DOM.
+export %inline
+render : Ref Canvas -> (CanvasDims -> Scene) -> JSIO ()
+render ref scene = renderWithMetrics ref scene

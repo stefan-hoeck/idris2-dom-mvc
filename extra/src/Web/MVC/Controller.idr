@@ -132,6 +132,11 @@ record Editor (i,st,ev,new : Type) where
   ||| Create an initial state from an optional value of type `new`
   toState : Maybe new -> st
 
+||| View an editor through an isomorphism.
+export
+newIso : Iso' n1 n2 -> Editor i st ev n1 -> Editor i st ev n2
+newIso i = {stToNew $= (map i.get_ .), toState $= (. map i.reverseGet)}
+
 ||| Utility for editors without initial command.
 export %inline
 noInit : i -> s -> Cmd e

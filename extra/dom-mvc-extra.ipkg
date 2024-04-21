@@ -10,6 +10,7 @@ depends    = dom-mvc
 
 modules    = Web.MVC.Controller
            , Web.MVC.Controller.Confirm
+           , Web.MVC.Controller.Form
            , Web.MVC.Controller.List
            , Web.MVC.Controller.File
            , Web.MVC.Controller.Validation

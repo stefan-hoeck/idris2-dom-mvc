@@ -36,7 +36,8 @@ parameters {0      i : Type}
   ||| displayed.
   export
   validated : i -> Node e -> Node e
-  validated u n =
+  validated _ Empty = Empty
+  validated u n     =
     cell env.widgetCls [] [n, cell env.msgCls [ref (env.msgID u)] []]
 
   ||| A validated text field.

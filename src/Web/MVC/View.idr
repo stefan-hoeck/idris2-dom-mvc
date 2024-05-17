@@ -90,7 +90,7 @@ setAttribute h el Empty      = pure ()
 |||
 ||| For using custom icons, use type `Url` linking to an
 ||| image and choose the offset for the mouse position.
-export
+public export
 data Cursor : Type where
   Alias       : Cursor
   AllScroll   : Cursor

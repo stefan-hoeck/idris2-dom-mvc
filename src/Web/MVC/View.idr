@@ -327,3 +327,13 @@ focus r = cmd_ (castElementByRef {t = HTMLElement} r >>= HTMLOrSVGElement.focus)
 export %inline
 blur : Ref t -> Cmd e
 blur r = cmd_ (castElementByRef {t = HTMLElement} r >>= HTMLOrSVGElement.blur)
+
+||| Provides a `TextMeasure` utility from the given `Canvas` to run the given
+||| command.
+export
+withMetricsFor : Ref Tag.Canvas -> (TextMeasure => Cmd e) -> Cmd e
+withMetricsFor ref c =
+  C $ \h => do
+    canvas <- castElementByRef {t = HTMLCanvasElement} ref
+    ctxt   <- context2D canvas
+    run (withMetrics ctxt c) h

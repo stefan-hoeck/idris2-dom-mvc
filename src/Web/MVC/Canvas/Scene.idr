@@ -123,8 +123,14 @@ measureText :
   -> TextMetrics
 measureText d a b f t = m.measure_ (show d) (show a) (show b) f t
 
+||| Supplies the given function with a `TextMeasure` implicit, derived
+||| from the given rendering context.
+export %inline
+withMetrics : CanvasRenderingContext2D -> (TextMeasure => a) -> a
+withMetrics cd f = f @{TM $ prim__measureText cd}
+
 ||| Alternative version of `apply` for those cases where we need to
 ||| work with text metrics.
 export
 applyWithMetrics : CanvasRenderingContext2D -> (TextMeasure => Scene) -> JSIO ()
-applyWithMetrics cd f = apply cd (f @{TM $ prim__measureText cd})
+applyWithMetrics cd f = withMetrics cd $ apply cd f

@@ -423,12 +423,3 @@ withMetricsFor ref c =
     canvas <- castElementByRef {t = HTMLCanvasElement} ref
     ctxt   <- context2D canvas
     run (withMetrics ctxt c) h
-
-
-%foreign "browser:lambda:(s,w) => document.body.style.cursor = s"
-prim__setCursor : String -> PrimIO ()
-
-||| Use the chosen mouse cursor
-export
-setCursor : Cursor -> Cmd e
-setCursor = cmd_ . primIO . prim__setCursor . interpolate

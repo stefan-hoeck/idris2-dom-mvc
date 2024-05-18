@@ -24,6 +24,7 @@ modules    = Text.CSS
            , Text.CSS.Property
            , Text.CSS.Rule
            , Text.CSS.Selector
+           , Text.CSS.Cursor
 
            , Text.HTML
            , Text.HTML.Attribute

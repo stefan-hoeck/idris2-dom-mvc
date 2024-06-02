@@ -77,7 +77,7 @@ inputInfo : InputEvent -> JSIO InputInfo
 inputInfo e = changeInfo $ up e
 
 export
-scrollInfo : UIEvent -> JSIO ScrollInfo
+scrollInfo : Event -> JSIO ScrollInfo
 scrollInfo e = do
   Just et <- target e          | Nothing => pure $ MkScrollInfo 0 0 0
   case castTo Element et of

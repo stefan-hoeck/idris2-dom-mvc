@@ -31,6 +31,13 @@ canvasDims r = do
   pure $ CD w h
 
 export
+setCanvasDims : Ref Canvas -> CanvasDims -> JSIO ()
+setCanvasDims r (CD w h) = do
+  canvas <- castElementByRef {t = HTMLCanvasElement} r
+  set (width  canvas) (cast w)
+  set (height canvas) (cast h)
+
+export
 context2D : HTMLCanvasElement -> JSIO CanvasRenderingContext2D
 context2D canvas = do
   m      <- getContext canvas "2d"

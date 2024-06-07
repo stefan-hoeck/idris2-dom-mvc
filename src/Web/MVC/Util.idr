@@ -5,6 +5,7 @@ import Text.CSS
 import Text.HTML
 import Web.Dom
 import Web.Html
+import Web.Raw.Geometry
 import public Text.HTML.Ref
 import public Text.HTML.Tag
 
@@ -133,3 +134,35 @@ beforeDF elem = before elem . nodeList
 export %inline
 replaceDF : Element -> DocumentFragment -> JSIO ()
 replaceDF elem = replaceWith elem . nodeList
+
+--------------------------------------------------------------------------------
+--          Element Geometry
+--------------------------------------------------------------------------------
+
+public export
+record Rect where
+  constructor MkRect
+  rectX  : Double
+  rectY  : Double
+  height : Double
+  width  : Double
+  top    : Double
+  bottom : Double
+  left   : Double
+  right  : Double
+
+export
+boundingRect : {0 x : k} -> Ref x -> JSIO Rect
+boundingRect ref = do
+  el <- castElementByRef {t = Element} ref
+  r  <- Element.getBoundingClientRect el
+  [| MkRect
+       (DOMRectReadOnly.x r)
+       (DOMRectReadOnly.y r)
+       (DOMRectReadOnly.height r)
+       (DOMRectReadOnly.width r)
+       (DOMRectReadOnly.top r)
+       (DOMRectReadOnly.bottom r)
+       (DOMRectReadOnly.left r)
+       (DOMRectReadOnly.right r)
+  |]

@@ -1,5 +1,6 @@
 module Web.MVC.Canvas
 
+import Derive.Prelude
 import JS
 import Text.HTML.Ref
 import Text.HTML.Tag
@@ -13,6 +14,7 @@ import public Web.MVC.Canvas.Style
 import public Web.MVC.Canvas.Transformation
 
 %default total
+%language ElabReflection
 
 ||| Canvas dimensions
 public export
@@ -21,6 +23,8 @@ record CanvasDims where
   constructor CD
   cwidth  : Double
   cheight : Double
+
+%runElab derive "CanvasDims" [Show,Eq]
 
 export
 canvasDims : Ref Canvas -> JSIO CanvasDims

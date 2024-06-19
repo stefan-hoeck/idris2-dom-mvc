@@ -37,7 +37,7 @@ parameters {0      i : Type}
 
   export
   file : (fe : FileEnv i) => i -> Maybe Body -> Node FileEv
-  file uid (Just b) = NameChanged <$> vinp fe.fileCls Text uid "\{b}"
+  file uid (Just b) = NameChanged <$> vinp fe.inputCls Text uid "\{b}"
   file uid Nothing  =
     cell fe.fileCls []
       [ NameChanged <$> vinp fe.inputCls Text uid ""

@@ -77,13 +77,15 @@ inputInfo : InputEvent -> JSIO InputInfo
 inputInfo e = changeInfo $ up e
 
 export
+elemScrollInfo : Element -> JSIO ScrollInfo
+elemScrollInfo x =
+  [| MkScrollInfo (get x scrollTop) (scrollHeight x) (clientHeight x) |]
+
+export
 scrollInfo : Event -> JSIO ScrollInfo
 scrollInfo e = do
-  Just et <- target e          | Nothing => pure $ MkScrollInfo 0 0 0
-  case castTo Element et of
-    Nothing => pure $ MkScrollInfo 0 0 0
-    Just x =>
-      [| MkScrollInfo (get x scrollTop) (scrollHeight x) (clientHeight x) |]
+  Just et <- target e | Nothing => pure $ MkScrollInfo 0 0 0
+  maybe (pure $ MkScrollInfo 0 0 0) elemScrollInfo (castTo Element et)
 
 export
 wheelInfo : WheelEvent -> JSIO WheelInfo

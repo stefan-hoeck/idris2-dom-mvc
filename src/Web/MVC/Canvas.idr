@@ -49,6 +49,12 @@ record CanvasDims where
 
 %runElab derive "CanvasDims" [Show,Eq]
 
+export
+fromCSSDims : (w,h: Double) -> JSIO CanvasDims
+fromCSSDims w h = do
+  r <- Canvas.devicePixelRatio
+  pure $ CD r (w * r) (h * r) w h
+
 compCanvasDims : HTMLCanvasElement -> JSIO CanvasDims
 compCanvasDims canvas = do
   r      <- Canvas.devicePixelRatio

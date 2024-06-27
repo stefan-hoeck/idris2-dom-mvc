@@ -152,9 +152,8 @@ record Rect where
   right  : Double
 
 export
-boundingRect : {0 x : k} -> Ref x -> JSIO Rect
-boundingRect ref = do
-  el <- castElementByRef {t = Element} ref
+elemBoundingRect : Element -> JSIO Rect
+elemBoundingRect el = do
   r  <- Element.getBoundingClientRect el
   [| MkRect
        (DOMRectReadOnly.x r)
@@ -166,3 +165,7 @@ boundingRect ref = do
        (DOMRectReadOnly.left r)
        (DOMRectReadOnly.right r)
   |]
+
+export
+boundingRect : {0 x : k} -> Ref x -> JSIO Rect
+boundingRect ref = castElementByRef ref >>= elemBoundingRect

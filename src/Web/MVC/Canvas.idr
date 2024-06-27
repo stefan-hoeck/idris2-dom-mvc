@@ -58,9 +58,10 @@ fromCSSDims w h = do
 compCanvasDims : HTMLCanvasElement -> JSIO CanvasDims
 compCanvasDims canvas = do
   r      <- Canvas.devicePixelRatio
+  rect   <- elemBoundingRect (up canvas)
   w      <- cast <$> get canvas width
   h      <- cast <$> get canvas height
-  pure $ CD r w h (w / r) (h / r)
+  pure $ CD r w h rect.width rect.height
 
 export
 canvasDims : Ref Canvas -> JSIO CanvasDims

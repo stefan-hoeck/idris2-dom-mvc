@@ -311,12 +311,7 @@ render r = renderWithDims r . const
 ||| Adjusts the dimensions of a `HTMLCanvasElement`
 export
 setCanvasDims : Ref Tag.Canvas -> CanvasDims -> Cmd e
-setCanvasDims r d =
-  cmd_ $ do
-    c <- castElementByRef {t = HTMLCanvasElement} r
-    set (height c) (cast d.cheight)
-    set (width c) (cast d.cwidth)
-
+setCanvasDims r d = cmd_ $ Canvas.setCanvasDims r d
 
 ||| Focus the given HTMLElemet
 export %inline

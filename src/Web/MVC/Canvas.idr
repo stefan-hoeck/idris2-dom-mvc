@@ -16,30 +16,55 @@ import public Web.MVC.Canvas.Transformation
 %default total
 %language ElabReflection
 
+%foreign "browser:lambda:(w) => window.devicePixelRatio"
+prim__devicePixelRatio : PrimIO Double
+
+%foreign "browser:lambda:(c,pxw,pxh,cssw,cssh,w) => {c.style.width = cssw + \"px\"; c.style.height = cssh + \"px\"; c.width = pxw; c.height = pxh;}"
+prim__setDims : HTMLCanvasElement -> (pxw, pxh, cssw, cssh : Double) -> PrimIO ()
+
+export %inline
+devicePixelRatio : HasIO io => io Double
+devicePixelRatio = primIO prim__devicePixelRatio
+
 ||| Canvas dimensions
 public export
 record CanvasDims where
   [noHints]
   constructor CD
-  cwidth  : Double
-  cheight : Double
+
+  ||| Device pixel ratio
+  pixelRatio : Double
+
+  ||| Pixel width of canvas
+  pxWidth    : Double
+
+  ||| Pixel height of canvas
+  pxHeight   : Double
+
+  ||| CSS pixel width of canvas
+  cssWidth   : Double
+
+  ||| CSS pixel height of canvas
+  cssHeight  : Double
 
 %runElab derive "CanvasDims" [Show,Eq]
 
-export
-canvasDims : Ref Canvas -> JSIO CanvasDims
-canvasDims r = do
-  canvas <- castElementByRef {t = HTMLCanvasElement} r
+compCanvasDims : HTMLCanvasElement -> JSIO CanvasDims
+compCanvasDims canvas = do
+  r      <- Canvas.devicePixelRatio
   w      <- cast <$> get canvas width
   h      <- cast <$> get canvas height
-  pure $ CD w h
+  pure $ CD r w h (w / r) (h / r)
+
+export
+canvasDims : Ref Canvas -> JSIO CanvasDims
+canvasDims r = castElementByRef {t = HTMLCanvasElement} r >>= compCanvasDims
 
 export
 setCanvasDims : Ref Canvas -> CanvasDims -> JSIO ()
-setCanvasDims r (CD w h) = do
+setCanvasDims r (CD _ pxw pxh cssw cssh) = do
   canvas <- castElementByRef {t = HTMLCanvasElement} r
-  set (width  canvas) (cast w)
-  set (height canvas) (cast h)
+  primIO $ prim__setDims canvas {pxw, pxh, cssw, cssh}
 
 export
 context2D : HTMLCanvasElement -> JSIO CanvasRenderingContext2D
@@ -55,10 +80,9 @@ renderWithMetrics : Ref Canvas -> (TextMeasure => CanvasDims -> Scene) -> JSIO (
 renderWithMetrics ref scene = do
   canvas <- castElementByRef {t = HTMLCanvasElement} ref
   ctxt   <- context2D canvas
-  w      <- cast <$> get canvas width
-  h      <- cast <$> get canvas height
-  apply ctxt $ Rect 0 0 w h Clear
-  applyWithMetrics ctxt (scene (CD w h))
+  dims   <- compCanvasDims canvas
+  apply ctxt $ Rect 0 0 dims.pxWidth dims.pxHeight Clear
+  applyWithMetrics ctxt (scene dims)
 
 ||| Render a scene in a canvas in the DOM.
 export %inline

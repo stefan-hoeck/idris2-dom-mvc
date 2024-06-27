@@ -22,7 +22,7 @@ ix (Entry v _ :: xs) 0     = Just v
 ix (Title s   :: xs) 0     = Nothing
 ix (x :: xs)         (S k) = ix xs k
 
-app : SnocList (a,List b) -> SnocList b -> a -> SnocList (a,List b)
+app : {0 a,b : _} -> SnocList (a,List b) -> SnocList b -> a -> SnocList (a,List b)
 app sx [<] x = sx
 app sx sy  x = sx :< (x, sy <>> [])
 

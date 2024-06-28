@@ -20,7 +20,7 @@ import public Web.MVC.Canvas.Transformation
 prim__devicePixelRatio : PrimIO Double
 
 %foreign "browser:lambda:(c,pxw,pxh,cssw,cssh,w) => {c.style.width = cssw + \"px\"; c.style.height = cssh + \"px\"; c.width = pxw; c.height = pxh;}"
-prim__setDims : HTMLCanvasElement -> (pxw, pxh, cssw, cssh : Double) -> PrimIO ()
+prim__setDims : HTMLCanvasElement -> (pxw, pxh, cssw, cssh : Bits32) -> PrimIO ()
 
 export %inline
 devicePixelRatio : HasIO io => io Double
@@ -36,24 +36,24 @@ record CanvasDims where
   pixelRatio : Double
 
   ||| Pixel width of canvas
-  pxWidth    : Double
+  pxWidth    : Bits32
 
   ||| Pixel height of canvas
-  pxHeight   : Double
+  pxHeight   : Bits32
 
   ||| CSS pixel width of canvas
-  cssWidth   : Double
+  cssWidth   : Bits32
 
   ||| CSS pixel height of canvas
-  cssHeight  : Double
+  cssHeight  : Bits32
 
 %runElab derive "CanvasDims" [Show,Eq]
 
 export
-fromCSSDims : (w,h: Double) -> JSIO CanvasDims
+fromCSSDims : (w,h: Bits32) -> JSIO CanvasDims
 fromCSSDims w h = do
   r <- Canvas.devicePixelRatio
-  pure $ CD r (w * r) (h * r) w h
+  pure $ CD r (cast . floor $ cast w * r) (cast . floor $ cast h * r) w h
 
 compCanvasDims : HTMLCanvasElement -> JSIO CanvasDims
 compCanvasDims canvas = do
@@ -61,7 +61,7 @@ compCanvasDims canvas = do
   rect   <- elemBoundingRect (up canvas)
   w      <- cast <$> get canvas width
   h      <- cast <$> get canvas height
-  pure $ CD r w h rect.width rect.height
+  pure $ CD r w h (cast rect.width) (cast rect.height)
 
 export
 canvasDims : Ref Canvas -> JSIO CanvasDims
@@ -88,7 +88,7 @@ renderWithMetrics ref scene = do
   canvas <- castElementByRef {t = HTMLCanvasElement} ref
   ctxt   <- context2D canvas
   dims   <- compCanvasDims canvas
-  apply ctxt $ Rect 0 0 dims.pxWidth dims.pxHeight Clear
+  apply ctxt $ Rect 0 0 (cast dims.pxWidth) (cast dims.pxHeight) Clear
   applyWithMetrics ctxt (scene dims)
 
 ||| Render a scene in a canvas in the DOM.

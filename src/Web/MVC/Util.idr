@@ -14,8 +14,8 @@ import public Text.HTML.Tag
 ||| DOM type associacte with an ElemRef
 public export
 0 ElemType : Ref t -> Type
-ElemType (Id _)   = HTMLElement
-ElemType (Elem _) = HTMLElement
+ElemType (Id _)   = Element
+ElemType (Elem _) = Element
 ElemType Body     = HTMLElement
 ElemType Document = Document
 ElemType Window   = Window

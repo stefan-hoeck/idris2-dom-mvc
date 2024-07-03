@@ -72,6 +72,7 @@ data HTMLTag : (tag : String) -> Type where
   Source     : HTMLTag "source"
   Span       : HTMLTag "span"
   Style      : HTMLTag "style"
+  Svg        : HTMLTag "svg"
   Table      : HTMLTag "table"
   Tbody      : HTMLTag "tbody"
   Td         : HTMLTag "td"

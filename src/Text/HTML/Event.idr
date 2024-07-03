@@ -69,6 +69,17 @@ record ScrollInfo where
   scrollHeight : Int32
   clientHeight : Int32
 
+public export
+record Rect where
+  constructor MkRect
+  rectX  : Double
+  rectY  : Double
+  height : Double
+  width  : Double
+  top    : Double
+  bottom : Double
+  left   : Double
+  right  : Double
 
 --------------------------------------------------------------------------------
 --          Events
@@ -110,6 +121,9 @@ data DOMEvent : Type -> Type where
   -- Wheel
   Wheel      : (WheelInfo -> Maybe a)  -> DOMEvent a
 
+  -- Resize Events
+  Resize     : (Rect -> Maybe a)  -> DOMEvent a
+
 export
 Functor DOMEvent where
   map f (Click g)      = Click (map f . g)
@@ -130,3 +144,4 @@ Functor DOMEvent where
   map f (HashChange x) = HashChange (f x)
   map f (Scroll g)     = Scroll (map f . g)
   map f (Wheel g)      = Wheel (map f . g)
+  map f (Resize g)     = Resize (map f . g)

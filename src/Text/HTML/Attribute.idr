@@ -392,6 +392,10 @@ onMouseOut : ev -> Attribute t ev
 onMouseOut = Event . MouseOut . const . Just
 
 export
+onResize : (Rect -> ev) -> Attribute t ev
+onResize f = Event . Resize $ Just . f
+
+export
 onChange : (String -> ev) -> Attribute t ev
 onChange f = Event . Change $ Just . f . value
 

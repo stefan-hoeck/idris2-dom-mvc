@@ -139,23 +139,9 @@ replaceDF elem = replaceWith elem . nodeList
 --          Element Geometry
 --------------------------------------------------------------------------------
 
-public export
-record Rect where
-  constructor MkRect
-  rectX  : Double
-  rectY  : Double
-  height : Double
-  width  : Double
-  top    : Double
-  bottom : Double
-  left   : Double
-  right  : Double
-
 export
-boundingRect : {0 x : k} -> Ref x -> JSIO Rect
-boundingRect ref = do
-  el <- castElementByRef {t = Element} ref
-  r  <- Element.getBoundingClientRect el
+toRect : DOMRect -> JSIO Rect
+toRect r =
   [| MkRect
        (DOMRectReadOnly.x r)
        (DOMRectReadOnly.y r)
@@ -166,3 +152,10 @@ boundingRect ref = do
        (DOMRectReadOnly.left r)
        (DOMRectReadOnly.right r)
   |]
+
+export
+boundingRect : {0 x : k} -> Ref x -> JSIO Rect
+boundingRect ref = do
+  el <- castElementByRef {t = Element} ref
+  r  <- Element.getBoundingClientRect el
+  toRect r

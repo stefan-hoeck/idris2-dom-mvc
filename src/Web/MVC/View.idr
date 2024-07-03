@@ -16,6 +16,9 @@ import Web.MVC.Util
 
 %default total
 
+%foreign "browser:lambda:(e,f,w) => {const o = new ResizeObserver((es) => f(e.getBoundingClientRect())(w));o.observe(e)}"
+prim__observeResize : Element -> (DOMRect -> PrimIO ()) -> PrimIO ()
+
 --------------------------------------------------------------------------------
 --          Registering Events
 --------------------------------------------------------------------------------
@@ -51,6 +54,7 @@ registerDOMEvent h prev stop el de = case de of
   HashChange v => inst "hashchange" {t = Event} (const $ pure v) Just
   Scroll f     => inst "scroll" scrollInfo f
   Wheel f      => inst "wheel" wheelInfo f
+  Resize f     => onresize f
 
   where
     inst :
@@ -70,6 +74,13 @@ registerDOMEvent h prev stop el de = case de of
         conv va >>= maybe (pure ()) h . f
 
       addEventListener el s (Just c)
+
+    onresize : (Rect -> Maybe e) -> JSIO ()
+    onresize f = do
+      va <- tryCast_ Element "Web.MVC.View.onresize" el
+      primIO $ prim__observeResize va $ \r => toPrim $ runJS $ do
+        rect <- toRect r
+        maybe (pure ()) h (f rect)
 
 export
 setAttribute : (e -> JSIO ()) -> Element -> Attribute t e -> JSIO ()

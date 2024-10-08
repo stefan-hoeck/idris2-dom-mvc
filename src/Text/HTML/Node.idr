@@ -79,6 +79,10 @@ article : List (Attribute Article ev) -> List (Node ev) -> Node ev
 article = El _
 
 export %inline
+aside : List (Attribute Aside ev) -> List (Node ev) -> Node ev
+aside = El _
+
+export %inline
 audio : List (Attribute Audio ev) -> List (Node ev) -> Node ev
 audio = El _
 

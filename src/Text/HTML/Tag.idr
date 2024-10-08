@@ -12,6 +12,7 @@ data HTMLTag : (tag : String) -> Type where
   Address    : HTMLTag "address"
   Area       : HTMLTag "area"
   Article    : HTMLTag "article"
+  Aside      : HTMLTag "aside"
   Audio      : HTMLTag "audio"
   Base       : HTMLTag "base"
   Blockquote : HTMLTag "blockquote"

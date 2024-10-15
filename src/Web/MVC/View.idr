@@ -55,6 +55,8 @@ registerDOMEvent h prev stop el de = case de of
   Scroll f     => inst "scroll" scrollInfo f
   Wheel f      => inst "wheel" wheelInfo f
   Resize f     => onresize f
+  Back v       => inst "back" {t = Event} (const $ pure v) Just
+  Forward v    => inst "forward" {t = Event} (const $ pure v) Just
 
   where
     inst :

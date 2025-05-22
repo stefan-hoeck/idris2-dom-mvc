@@ -79,8 +79,27 @@ liftIO_ = cmd_ . liftIO
 
 ||| Fires the given event once, synchronously.
 export %inline
-pure : e -> Cmd e
-pure v = C ($ v)
+send : a -> Cmd a
+send x = C ($ x)
+
+||| If the command contains a lambda, we can apply it.
+export %inline
+apply : Cmd (a -> b) -> Cmd a -> Cmd b
+apply (C fm) (C xv) = C (\f => fm (\g => xv (f . g)))
+
+export %inline
+Applicative Cmd where
+  pure = send
+  (<*>) = apply
+
+||| Nested commands are commands.
+export %inline
+flatten : Cmd (Cmd a) -> Cmd a
+flatten c = C (\fc => c.run (\k => k.run fc))
+
+export %inline
+Monad Cmd where
+  join = flatten
 
 ||| A command that produces no event.
 |||

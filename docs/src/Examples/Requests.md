@@ -83,7 +83,7 @@ printError (JSONError str x) =
   """
   Error when decoding JSON string: \{str}
 
-  \{prettyErr str x}
+  \{x}
   """
 
 dispResult : Either HTTPError Quote -> List (Node ReqEv)

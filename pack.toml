@@ -13,8 +13,8 @@ type   = "local"
 path   = "docs"
 ipkg   = "docs.ipkg"
 
-[custom.all.tailrec]
+[custom.all.css]
 type   = "git"
-url    = "https://github.com/stefan-hoeck/idris2-tailrec"
+url    = "https://github.com/stefan-hoeck/idris2-css"
 commit = "latest:main"
-ipkg   = "tailrec.ipkg"
+ipkg   = "css.ipkg"

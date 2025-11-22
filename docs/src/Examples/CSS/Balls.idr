@@ -31,11 +31,11 @@ log = Id "balls_log"
 --------------------------------------------------------------------------------
 
 export
-ballsContent : String
+ballsContent : Class
 ballsContent = "balls_content"
 
 export
-lblCount : String
+lblCount : Class
 lblCount = "balls_lblcount"
 
 data Tag = LNum | INum | BRun | LFPS | Anim | Dot

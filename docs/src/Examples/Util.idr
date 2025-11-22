@@ -2,6 +2,7 @@
 module Examples.Util
 
 import Examples.CSS.Core
+import public Text.CSS.Class
 import Text.HTML
 
 --------------------------------------------------------------------------------
@@ -9,5 +10,5 @@ import Text.HTML
 --------------------------------------------------------------------------------
 
 export
-lbl : (text: String) -> (class : String) -> Node ev
+lbl : (text: String) -> (class : Class) -> Node ev
 lbl txt cl = label [classes [widgetLabel, cl]] [Text txt]

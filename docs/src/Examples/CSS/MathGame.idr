@@ -53,20 +53,20 @@ calc = Id "mathgame_calc"
 
 ||| Message field class if answer is correct
 export
-correct : String
+correct : Class
 correct = "correct"
 
 ||| Message field class if answer is wrong
 export
-wrong : String
+wrong : Class
 wrong = "wrong"
 
 export
-mathContent : String
+mathContent : Class
 mathContent = "mathgame_content"
 
 export
-lblLang : String
+lblLang : Class
 lblLang = "mathgame_lbllang"
 
 data Tag = LLan | ILan | OClc | IRes | BChk | ORep | BNew | OPic | Dot

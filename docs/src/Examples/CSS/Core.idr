@@ -37,52 +37,52 @@ appStyle = Id "appstyle"
 
 ||| a clickable button
 export
-btn : String
+btn : Class
 btn = "btn"
 
 ||| a text input
 export
-textIn : String
+textIn : Class
 textIn = "textin"
 
 ||| a select input
 export
-selectIn : String
+selectIn : Class
 selectIn = "selectin"
 
 ||| an input widget
 export
-widget : String
+widget : Class
 widget = "widget"
 
 ||| the main content, split into three rows:
 ||| a title, the example selector, and the
 ||| currently loaded example application
 export
-contentList : String
+contentList : Class
 contentList = "contentList"
 
 ||| the header row where the example selector
 ||| resides
 export
-contentHeader : String
+contentHeader : Class
 contentHeader = "contentHeader"
 
 ||| the row with the page title
 export
-pageTitle : String
+pageTitle : Class
 pageTitle = "pageTitle"
 
 ||| the select box used to choose an example
 ||| application
 export
-exampleSelector : String
+exampleSelector : Class
 exampleSelector = "example_selector"
 
 ||| a label on the left of an input
 ||| widget.
 export
-widgetLabel : String
+widgetLabel : Class
 widgetLabel = "widgetlabel"
 
 --------------------------------------------------------------------------------

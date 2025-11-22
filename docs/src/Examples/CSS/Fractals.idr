@@ -31,15 +31,15 @@ txtRedraw = Id "fractals_redrawdelay"
 --------------------------------------------------------------------------------
 
 export
-fractalContent : String
+fractalContent : Class
 fractalContent = "fractals_content"
 
 export
-lblIter : String
+lblIter : Class
 lblIter = "fractals_lbliter"
 
 export
-lblDelay : String
+lblDelay : Class
 lblDelay = "fractals_lbldelay"
 
 --------------------------------------------------------------------------------

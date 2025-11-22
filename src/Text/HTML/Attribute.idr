@@ -3,6 +3,7 @@ module Text.HTML.Attribute
 import Data.List
 import Data.Maybe
 import Data.String
+import Text.CSS.Class
 import Text.HTML.Event
 import Text.HTML.Tag
 import Text.HTML.Ref
@@ -164,12 +165,12 @@ cite : String -> Attribute t ev
 cite = Str "cite"
 
 export %inline
-class : String -> Attribute t ev
-class = Str "class"
+class : Class -> Attribute t ev
+class = Str "class" . value
 
 export %inline
-classes : List String -> Attribute t ev
-classes = dispAttr "class" (fastConcat . intersperse " ")
+classes : List Class -> Attribute t ev
+classes = dispAttr "class" (fastConcat . intersperse " " . map value)
 
 export %inline
 cols : Bits32 -> Attribute t ev

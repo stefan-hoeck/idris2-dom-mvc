@@ -24,15 +24,15 @@ quoteInfo = Id "request-quote-info"
 --------------------------------------------------------------------------------
 
 export
-requestContent : String
+requestContent : Class
 requestContent = "request-content"
 
 export
-requestError : String
+requestError : Class
 requestError = "request-error"
 
 export
-quoteBtn : String
+quoteBtn : Class
 quoteBtn = "request-quote-btn"
 
 --------------------------------------------------------------------------------

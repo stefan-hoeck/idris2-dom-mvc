@@ -36,27 +36,27 @@ btnReset = Id "reset_reset"
 --------------------------------------------------------------------------------
 
 export
-resetLbl : String
+resetLbl : Class
 resetLbl = "reset_resetlbl"
 
 export
-incLbl : String
+incLbl : Class
 incLbl = "reset_inclbl"
 
 export
-decLbl : String
+decLbl : Class
 decLbl = "reset_declbl"
 
 export
-countLbl : String
+countLbl : Class
 countLbl = "reset_countlbl"
 
 export
-resetContent : String
+resetContent : Class
 resetContent = "reset_content"
 
 export
-resetBtn : String
+resetBtn : Class
 resetBtn = "reset_incbtn"
 
 data Tag = LRes | BRes | LInc | BInc | LDec | BDec | LCnt | OCnt

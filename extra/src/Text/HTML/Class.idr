@@ -1,20 +1,13 @@
 module Text.HTML.Class
 
 import Derive.Prelude
+import public Text.CSS.Class
 import Text.HTML
 import Text.HTML.Select
 import Text.HTML.DomID
 
 %default total
 %language ElabReflection
-
-||| A CSS class
-public export
-record Class where
-  constructor C
-  value : String
-
-%runElab derive "Class" [Show,Eq,Ord,FromString]
 
 --------------------------------------------------------------------------------
 --          Utility Classes
@@ -90,13 +83,9 @@ expanded = "expanded"
 --          UI Elements
 --------------------------------------------------------------------------------
 
-clsStrings : SnocList Class -> List String -> List String
-clsStrings [<]       ss = ss
-clsStrings (sx :< x) ss = clsStrings sx (x.value :: ss)
-
 export
 cls : SnocList Class -> Class -> Attribute t e
-cls sv v = classes $ clsStrings sv [v.value]
+cls sv v = classes $ sv <>> [v]
 
 export %inline
 cls1 : Class -> Attribute t e

@@ -20,6 +20,7 @@ import Examples.Performance
 import Examples.Requests
 import Examples.Reset
 
+import Text.CSS.Class
 import Text.HTML.Select
 import Web.MVC
 

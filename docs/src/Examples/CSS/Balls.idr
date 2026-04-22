@@ -1,10 +1,14 @@
 module Examples.CSS.Balls
 
 import Data.Vect
+import Derive.Prelude
 import Examples.CSS.Colors
 import Text.CSS
 import Text.HTML
 import public Examples.CSS.Core
+
+%default total
+%language ElabReflection
 
 --------------------------------------------------------------------------------
 --          IDs
@@ -40,13 +44,7 @@ lblCount = "balls_lblcount"
 
 data Tag = LNum | INum | BRun | LFPS | Anim | Dot
 
-AreaTag Tag where
-  showTag LNum = "LNum"
-  showTag INum = "INum"
-  showTag BRun = "BRun"
-  showTag LFPS = "LFPS"
-  showTag Anim = "Anim"
-  showTag Dot  = "."
+%runElab derive "Tag" [Show,Eq]
 
 export
 css : List (Rule 1)

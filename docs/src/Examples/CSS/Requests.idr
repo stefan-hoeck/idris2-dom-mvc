@@ -1,11 +1,13 @@
 module Examples.CSS.Requests
 
 import Data.Vect
+import Derive.Prelude
 import public Examples.CSS.Core
 import Text.CSS
 import Text.HTML
 
 %default total
+%language ElabReflection
 
 --------------------------------------------------------------------------------
 --          IDs
@@ -41,11 +43,7 @@ quoteBtn = "request-quote-btn"
 
 data Tag = Btn | Quot | Info | Dot
 
-AreaTag Tag where
-  showTag Btn  = "Btn"
-  showTag Quot = "Quot"
-  showTag Info = "Info"
-  showTag Dot  = "."
+%runElab derive "Tag" [Show,Eq]
 
 export
 css : List (Rule 1)

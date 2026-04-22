@@ -2,10 +2,14 @@
 module Examples.CSS.MathGame
 
 import Data.Vect
+import Derive.Prelude
 import Examples.CSS.Colors
 import public Examples.CSS.Core
 import Text.CSS
 import Text.HTML
+
+%default total
+%language ElabReflection
 
 --------------------------------------------------------------------------------
 --          IDs
@@ -71,16 +75,7 @@ lblLang = "mathgame_lbllang"
 
 data Tag = LLan | ILan | OClc | IRes | BChk | ORep | BNew | OPic | Dot
 
-AreaTag Tag where
-  showTag LLan = "LLan"
-  showTag ILan = "ILan"
-  showTag OClc = "OClc"
-  showTag IRes = "IRes"
-  showTag BChk = "BChk"
-  showTag ORep = "ORep"
-  showTag BNew = "BNew"
-  showTag OPic = "OPic"
-  showTag Dot  = "."
+%runElab derive "Tag" [Show,Eq]
 
 export
 css : List (Rule 1)

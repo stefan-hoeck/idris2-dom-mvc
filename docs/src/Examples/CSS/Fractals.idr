@@ -1,10 +1,14 @@
 module Examples.CSS.Fractals
 
 import Data.Vect
+import Derive.Prelude
 import Examples.CSS.Colors
 import public Examples.CSS.Core
 import Text.CSS
 import Text.HTML
+
+%default total
+%language ElabReflection
 
 --------------------------------------------------------------------------------
 --          IDs
@@ -48,14 +52,7 @@ lblDelay = "fractals_lbldelay"
 
 data Tag = LIter | IIter | LDel | IDel | BRun | Fract | Dot
 
-AreaTag Tag where
-  showTag LIter = "LIter"
-  showTag IIter = "IIter"
-  showTag LDel  = "LDel"
-  showTag IDel  = "IDel"
-  showTag BRun  = "BRun"
-  showTag Fract = "Fract"
-  showTag Dot   = "."
+%runElab derive "Tag" [Show,Eq]
 
 export
 css : List (Rule 1)

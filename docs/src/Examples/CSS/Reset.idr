@@ -2,10 +2,14 @@
 module Examples.CSS.Reset
 
 import Data.Vect
+import Derive.Prelude
 import Examples.CSS.Colors
 import public Examples.CSS.Core
 import Text.CSS
 import Text.HTML
+
+%default total
+%language ElabReflection
 
 --------------------------------------------------------------------------------
 --          IDs
@@ -61,15 +65,7 @@ resetBtn = "reset_incbtn"
 
 data Tag = LRes | BRes | LInc | BInc | LDec | BDec | LCnt | OCnt
 
-AreaTag Tag where
-  showTag LRes = "LRes"
-  showTag BRes = "BRes"
-  showTag LInc = "LInc"
-  showTag BInc = "BInc"
-  showTag LDec = "LDec"
-  showTag BDec = "BDec"
-  showTag LCnt = "LCnt"
-  showTag OCnt = "OCnt"
+%runElab derive "Tag" [Show,Eq]
 
 export
 css : List (Rule 1)

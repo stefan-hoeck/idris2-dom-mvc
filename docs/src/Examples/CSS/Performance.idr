@@ -1,10 +1,14 @@
 module Examples.CSS.Performance
 
 import Data.Vect
+import Derive.Prelude
 import Examples.CSS.Colors
 import public Examples.CSS.Core
 import Text.CSS
 import Text.HTML
+
+%default total
+%language ElabReflection
 
 --------------------------------------------------------------------------------
 --          IDs
@@ -64,15 +68,7 @@ performanceContent = "performance_content"
 
 data Tag = LBtn | NBtn | BRun | LSum | OSum | Btns | OTme | Dot
 
-AreaTag Tag where
-  showTag LBtn  = "LBtn"
-  showTag NBtn  = "NBtn"
-  showTag BRun  = "BRun"
-  showTag LSum  = "LSum"
-  showTag Btns  = "Btns"
-  showTag OSum  = "OSum"
-  showTag OTme  = "OTme"
-  showTag Dot   = "."
+%runElab derive "Tag" [Show,Eq]
 
 export
 css : List (Rule 1)
